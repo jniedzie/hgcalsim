@@ -1,1 +1,1 @@
-# hgcalsim
+# HGCAL simulation using law
