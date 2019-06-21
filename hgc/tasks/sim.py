@@ -121,5 +121,3 @@ class PlotTask(Task):
         for i, event in enumerate(data):
             with output[i].localize("w") as tmp_out:
                 caloparticle_rechit_eta_phi_plot(event, tmp_out.path)
-
-            break

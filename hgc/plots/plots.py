@@ -25,7 +25,6 @@ def caloparticle_rechit_eta_phi_plot(event, plot_path):
     rechit_graph = ROOT.TGraph(n_rechits)
 
     for j in range(n_caloparticles):
-        print j
         caloparticle_graph.SetPoint(j, event["calopart_eta"][j], event["calopart_phi"][j])
 
     for j in range(n_rechits):
