@@ -174,7 +174,9 @@ action() {
 
     if [ -z "$HGC_SCHEDULER_HOST" ]; then
         2>&1 echo "NOTE: HGC_SCHEDULER_HOST is not set, use '--local-scheduler' in your tasks!"
+        export HGC_SCHEDULER_HOST=""
     fi
+    export HGC_SCHEDULER_PORT="80"
 
     # configs that depend on the run location
     if [ "$HGC_ON_HTCONDOR" = "1" ]; then
