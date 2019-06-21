@@ -14,7 +14,7 @@ import math
 import luigi
 import law
 
-law.contrib.load("htcondor", "tasks", "telegram")
+law.contrib.load("htcondor", "tasks", "telegram", "root")
 
 
 class Task(law.Task):

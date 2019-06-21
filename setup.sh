@@ -153,6 +153,7 @@ action() {
         hgc_install_pip python-telegram-bot
         hgc_install_pip git+https://github.com/riga/scinum.git
         hgc_install_pip git+https://github.com/riga/order.git
+        hgc_install_pip git+https://github.com/riga/plotlib.git
         hgc_install_pip luigi
         hgc_install_pip --no-dependencies git+https://github.com/riga/law.git
     }

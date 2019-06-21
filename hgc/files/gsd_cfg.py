@@ -24,7 +24,7 @@ options = VarParsing("python")
 
 # set defaults of common options
 options.setDefault("outputFile", "gsd.root")
-options.setDefault("maxEvents", 100)
+options.setDefault("maxEvents", 1)
 
 # register custom options
 options.register("seed", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int,
@@ -69,7 +69,7 @@ process.generator = cms.EDProducer("CloseByParticleGunProducer",
         # particle ids
         PartID=cms.vint32(211),
         # max number of particles to shoot at a time
-        NParticles=cms.int32(2),
+        NParticles=cms.int32(5),
         # energy range
         EnMin=cms.double(5.0),
         EnMax=cms.double(100.0),

@@ -92,3 +92,34 @@ class NtupTask(Task, ParallelProdWorkflow):
                     inputFiles=[tmp_in.path],
                     outputFile=tmp_out.path,
                 ))
+
+
+class PlotTask(Task):
+
+    n_events = ParallelProdWorkflow.n_events
+
+    def requires(self):
+        return NtupTask.req(self, n_tasks=1)
+
+    def output(self):
+        return law.SiblingFileCollection([
+            self.local_target("eta_phi_{}.png".format(i))
+            for i in range(self.n_events)
+        ])
+
+    def run(self):
+        from hgc.plots.plots import caloparticle_rechit_eta_phi_plot
+
+        # ensure that the output directory exists
+        output = self.output()
+        output.dir.touch()
+
+        # load the data to a structured numpy array
+        input_target = self.input()["collection"][0]
+        data = input_target.load(formatter="root_numpy", treename="ana/hgc")
+
+        for i, event in enumerate(data):
+            with output[i].localize("w") as tmp_out:
+                caloparticle_rechit_eta_phi_plot(event, tmp_out.path)
+
+            break
