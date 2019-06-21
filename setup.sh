@@ -94,8 +94,8 @@ action() {
         git cms-init
         git cms-addpkg IOMC/ParticleGuns
         git cms-merge-topic riga:update_closebyparticlegun
-        git clone git@github.com:CMS-HGCAL/reco-ntuples.git RecoNtuples
-        git clone git@github.com:CMS-HGCAL/reco-prodtools.git reco_prodtools
+        git clone https://github.com/CMS-HGCAL/reco-ntuples.git RecoNtuples
+        git clone https://github.com/CMS-HGCAL/reco-prodtools.git reco_prodtools
 
         # compile
         scram b -j
