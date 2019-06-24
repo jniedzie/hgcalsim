@@ -80,17 +80,17 @@ process.generator = cms.EDProducer("CloseByParticleGunProducer",
         # abs eta range, not used but must be present
         MinEta=cms.double(0.),
         MaxEta=cms.double(0.),
-
-        # gun position and overlap settings
-        RhoMin=cms.double(calculate_rho(319.0, 1.594)),
-        RhoMax=cms.double(calculate_rho(319.0, 2.931)),
+        # longitudinal distance in cm
         ZMin=cms.double(319.0),
         ZMax=cms.double(319.0),
+        # radial distance in cm
+        RhoMin=cms.double(calculate_rho(319.0, 1.594)),
+        RhoMax=cms.double(calculate_rho(319.0, 2.931)),
+        # direction and overlapp settings
         DeltaR=cms.double(1.0),
         Pointing=cms.bool(True),
         Overlapping=cms.bool(True),
         RandomShoot=cms.bool(False),
-
     ),
     AddAntiParticle=cms.bool(False),
     firstRun=cms.untracked.uint32(1),
