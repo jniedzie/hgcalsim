@@ -48,44 +48,45 @@ process.RandomNumberGeneratorService.mix.initialSeed = cms.untracked.uint32(opti
 # process.generator = cms.EDProducer("FlatRandomPtGunProducer",
 #     PGunParameters=cms.PSet(
 #         # particle ids
-#         PartID=cms.vint32(211, 211, 211, 211, 211),
+#         PartID=cms.vint32(211),
 #         # pt range
 #         MinPt=cms.double(5.0),
 #         MaxPt=cms.double(100.0),
 #         # phi range
-#         MinPhi=cms.double(-math.pi),
-#         MaxPhi=cms.double(math.pi),
+#         MinPhi=cms.double(-math.pi / 6.),
+#         MaxPhi=cms.double(math.pi / 6.),
 #         # abs eta range
-#         MinEta=cms.double(1.479),
-#         MaxEta=cms.double(3.0),
+#         MinEta=cms.double(1.594),
+#         MaxEta=cms.double(2.931),
 #     ),
 #     AddAntiParticle=cms.bool(False),
 #     firstRun=cms.untracked.uint32(1),
 #     Verbosity=cms.untracked.int32(1),
 # )
 
+# our custom CloseByParticleGunProducer
 process.generator = cms.EDProducer("CloseByParticleGunProducer",
     PGunParameters=cms.PSet(
         # particle ids
         PartID=cms.vint32(211),
         # max number of particles to shoot at a time
-        NParticles=cms.int32(5),
+        NParticles=cms.int32(10),
         # energy range
         EnMin=cms.double(5.0),
         EnMax=cms.double(100.0),
         # phi range
         MinPhi=cms.double(-math.pi / 6.),
         MaxPhi=cms.double(math.pi / 6.),
-        # abs eta range
-        MinEta=cms.double(1.594),
-        MaxEta=cms.double(2.931),
+        # abs eta range, not used but must be present
+        MinEta=cms.double(0.),
+        MaxEta=cms.double(0.),
 
         # gun position and overlap settings
         RhoMin=cms.double(calculate_rho(319.0, 1.594)),
         RhoMax=cms.double(calculate_rho(319.0, 2.931)),
         ZMin=cms.double(319.0),
         ZMax=cms.double(319.0),
-        DeltaR=cms.double(0.2),
+        DeltaR=cms.double(1.0),
         Pointing=cms.bool(True),
         Overlapping=cms.bool(True),
         RandomShoot=cms.bool(False),
@@ -95,3 +96,36 @@ process.generator = cms.EDProducer("CloseByParticleGunProducer",
     firstRun=cms.untracked.uint32(1),
     Verbosity=cms.untracked.int32(10),
 )
+
+# # CloseByParticleGunProducer as used in CMSSW release
+# process.generator = cms.EDProducer("CloseByParticleGunProducer",
+#     PGunParameters=cms.PSet(
+#         # particle ids
+#         PartID=cms.vint32(211),
+#         # max number of particles to shoot at a time
+#         NParticles=cms.int32(10),
+#         # energy range
+#         EnMin=cms.double(5.0),
+#         EnMax=cms.double(100.0),
+#         # phi range
+#         MinPhi=cms.double(-math.pi / 6.),
+#         MaxPhi=cms.double(math.pi / 6.),
+#         # abs eta range, not used but must be present
+#         MinEta=cms.double(0.),
+#         MaxEta=cms.double(0.),
+
+#         # gun position and overlap settings
+#         RMin=cms.double(calculate_rho(319.0, 1.594)),
+#         RMax=cms.double(calculate_rho(319.0, 2.931)),
+#         ZMin=cms.double(319.0),
+#         ZMax=cms.double(319.0),
+#         Delta=cms.double(1.0),
+#         Pointing=cms.bool(True),
+#         Overlapping=cms.bool(True),
+#         RandomShoot=cms.bool(False),
+
+#     ),
+#     AddAntiParticle=cms.bool(False),
+#     firstRun=cms.untracked.uint32(1),
+#     Verbosity=cms.untracked.int32(10),
+# )

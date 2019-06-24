@@ -9,6 +9,7 @@ __all__ = ["GSDTask", "RecoTask", "NtupTask"]
 
 
 import os
+import random
 
 import law
 import luigi
@@ -21,6 +22,14 @@ class ParallelProdWorkflow(law.LocalWorkflow, HTCondorWorkflow):
 
     n_events = luigi.IntParameter(default=10, description="number of events to generate per task")
     n_tasks = luigi.IntParameter(default=1, description="number of branch tasks to create")
+    seed = luigi.IntParameter(default=0, description="initial random seed, random itself when set "
+        "to 0, will increased by branch number + 1, default: 0")
+
+    def __init__(self, *args, **kwargs):
+        super(ParallelProdWorkflow, self).__init__(*args, **kwargs)
+
+        if self.seed <= 0:
+            self.seed = random.randint(1, 1e8)
 
     def create_branch_map(self):
         return {i: i for i in range(self.n_tasks)}
@@ -39,7 +48,7 @@ class GSDTask(Task, ParallelProdWorkflow):
             cms_run_and_publish(self, "$HGC_BASE/hgc/files/gsd_cfg.py", dict(
                 outputFile=tmp_out.path,
                 maxEvents=self.n_events,
-                seed=self.branch + 1,
+                seed=self.seed + self.branch + 1,
             ))
 
 
@@ -107,6 +116,7 @@ class PlotTask(Task):
             for i in range(self.n_events)
         ])
 
+    @law.decorator.notify
     def run(self):
         from hgc.plots.plots import caloparticle_rechit_eta_phi_plot
 

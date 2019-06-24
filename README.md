@@ -29,6 +29,12 @@ most probably in your bashrc file. Otherwise, you should add `--local-scheduler`
 
 ### Example commands
 
+Re-compile CMSSW with 2 cores after making some updates to the code:
+
+```shell
+law run CompileCMSSW --n-cores 2
+```
+
 Run GSD, RECO and NTUP steps and create a simple eta-phi histogram of all rechits and calo particles:
 
 ```shell
