@@ -118,7 +118,7 @@ class PlotTask(Task):
 
     @law.decorator.notify
     def run(self):
-        from hgc.plots.plots import caloparticle_rechit_eta_phi_plot
+        from hgc.plots.plots import particle_rechit_eta_phi_plot
 
         # ensure that the output directory exists
         output = self.output()
@@ -130,4 +130,4 @@ class PlotTask(Task):
 
         for i, event in enumerate(data):
             with output[i].localize("w") as tmp_out:
-                caloparticle_rechit_eta_phi_plot(event, tmp_out.path)
+                particle_rechit_eta_phi_plot(event, "gunparticle", tmp_out.path)
