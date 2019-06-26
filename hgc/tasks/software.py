@@ -24,6 +24,7 @@ class CompileCMSSW(Task, law.RunOnceTask):
 
     version = None
 
+    @law.decorator.notify
     def run(self):
         # create the compilation command
         cmd = "scram b -j {}".format(self.n_cores)

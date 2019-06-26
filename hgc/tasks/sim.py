@@ -85,11 +85,11 @@ class NtupTask(Task, ParallelProdWorkflow):
     def workflow_requires(self):
         reqs = super(NtupTask, self).workflow_requires()
         if not self.cancel_jobs and not self.cleanup_jobs and not self.pilot:
-            reqs["reco"] = RecoTask.req(self)
+            reqs["reco"] = RecoTask.req(self, _prefer_cli=("version",))
         return reqs
 
     def requires(self):
-        return RecoTask.req(self)
+        return RecoTask.req(self, _prefer_cli=("version",))
 
     def output(self):
         return self.local_target("ntup_{}_n{}.root".format(self.branch, self.n_events))

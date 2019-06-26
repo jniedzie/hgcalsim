@@ -15,8 +15,10 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 
 # helpers
 def calculate_rho(z, eta):
-    x = math.exp(-eta)
-    return - z * 2 * x / (x**2 - 1)
+    return z * math.tan(2 * math.atan(math.exp(-eta)))
+    # same as
+    # x = math.exp(-eta)
+    # return -z * 2 * x / (x**2 - 1)
 
 
 # options
@@ -70,7 +72,7 @@ process.generator = cms.EDProducer("CloseByParticleGunProducer",
         # particle ids
         PartID=cms.vint32(211),
         # max number of particles to shoot at a time
-        NParticles=cms.int32(10),
+        NParticles=cms.int32(5),
         # energy range
         EnMin=cms.double(5.0),
         EnMax=cms.double(100.0),
@@ -87,17 +89,17 @@ process.generator = cms.EDProducer("CloseByParticleGunProducer",
         RhoMin=cms.double(calculate_rho(319.0, 1.594)),
         RhoMax=cms.double(calculate_rho(319.0, 2.931)),
         # direction and overlapp settings
-        DeltaR=cms.double(1.0),
+        DeltaR=cms.double(0.4),
         Pointing=cms.bool(True),
         Overlapping=cms.bool(True),
-        RandomShoot=cms.bool(False),
+        RandomShoot=cms.bool(True),
     ),
     AddAntiParticle=cms.bool(False),
     firstRun=cms.untracked.uint32(1),
     Verbosity=cms.untracked.int32(10),
 )
 
-# # CloseByParticleGunProducer as used in CMSSW release
+# CloseByParticleGunProducer as used in CMSSW release
 # process.generator = cms.EDProducer("CloseByParticleGunProducer",
 #     PGunParameters=cms.PSet(
 #         # particle ids

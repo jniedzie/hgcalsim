@@ -19,7 +19,7 @@ def particle_rechit_eta_phi_plot(event, particle_name, plot_path):
     n_particles = event[particle_name + "_energy"].shape[0]
     n_rechits = event["rechit_z"].shape[0]
 
-    binning = (1, -6.00, 6.00, 1, -3.2, 3.2)
+    binning = (1, 0., 4.0, 1, -3.2, 3.2)
     dummy_hist = ROOT.TH2F("h", ";#eta;#phi;Entries", *binning)
     particle0_graph = ROOT.TGraph(1)
     particle_graph = ROOT.TGraph(n_particles)
