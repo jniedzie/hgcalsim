@@ -184,11 +184,14 @@ action() {
         export HGC_LUIGI_WORKER_KEEP_ALIVE="False"
         export HGC_LUIGI_WORKER_FORCE_MULTIPROCESSING="True"
     else
-        export HGC_LUIGI_WORKER_KEEP_ALIVE="True"
+        export HGC_LUIGI_WORKER_KEEP_ALIVE="False"
         export HGC_LUIGI_WORKER_FORCE_MULTIPROCESSING="False"
     fi
 
     # source law's bash completion scipt
     source "$( law completion )" ""
+
+    # rerun the task indexing
+    law index --verbose
 }
 action "$@"

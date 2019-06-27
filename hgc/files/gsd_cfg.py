@@ -88,7 +88,6 @@ process.generator = cms.EDProducer("CloseByParticleGunProducer",
         # direction and overlapp settings
         DeltaR=cms.double(0.4),
         Pointing=cms.bool(True),
-        Overlapping=cms.bool(True),
         RandomShoot=cms.bool(True),
     ),
     AddAntiParticle=cms.bool(False),
