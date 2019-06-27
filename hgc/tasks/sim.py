@@ -14,11 +14,11 @@ import random
 import law
 import luigi
 
-from hgc.tasks.base import Task, HTCondorWorkflow
+from hgc.tasks.base import Task, HTCondorWorkflow, ARCWorkflow
 from hgc.util import cms_run_and_publish
 
 
-class ParallelProdWorkflow(law.LocalWorkflow, HTCondorWorkflow):
+class ParallelProdWorkflow(law.LocalWorkflow, HTCondorWorkflow, ARCWorkflow):
 
     n_events = luigi.IntParameter(default=10, description="number of events to generate per task")
     n_tasks = luigi.IntParameter(default=1, description="number of branch tasks to create")
@@ -38,7 +38,7 @@ class ParallelProdWorkflow(law.LocalWorkflow, HTCondorWorkflow):
 class GSDTask(Task, ParallelProdWorkflow):
 
     def output(self):
-        return self.local_target("gsd_{}_n{}.root".format(self.branch, self.n_events))
+        return self.wlcg_target("gsd_{}_n{}.root".format(self.branch, self.n_events))
 
     def run(self):
         # localize the output file
