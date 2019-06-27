@@ -6,6 +6,8 @@ HGCAL GEN, SIM and DIGI config.
 """
 
 
+print 1/0
+
 import math
 
 import FWCore.ParameterSet.Config as cms
@@ -16,9 +18,26 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 # helpers
 def calculate_rho(z, eta):
     return z * math.tan(2 * math.atan(math.exp(-eta)))
-    # same as
-    # x = math.exp(-eta)
-    # return -z * 2 * x / (x**2 - 1)
+
+
+def particle_id_list(content):
+    # content is expected to be a list of 2-tuples with each of them containing a pdg id of a
+    # particle and a relative fraction in percent with a maximum precision of 1% (so, integers!)
+
+    # check if all fractions are integers
+    fractions = [tpl[1] for tpl in content]
+    if not all(isinstance(f, int) for f in fractions):
+        raise TypeError("fractions must be integers, got {}".format(fractions))
+
+    # check if the fractions sum up to 100
+    s = sum(fractions)
+    if s != 100:
+        raise Exception("sum of fractions expected to be 100, got {}".format(s))
+
+    # create the final list of particle ids simply by multiplying with the corresponding fraction
+    ids = sum(([i] * f for i, f in content), [])
+
+    return ids
 
 
 # options
@@ -47,32 +66,12 @@ process.RandomNumberGeneratorService.VtxSmeared.initialSeed = cms.untracked.uint
 process.RandomNumberGeneratorService.mix.initialSeed = cms.untracked.uint32(options.seed)
 
 # particle gun setup
-# process.generator = cms.EDProducer("FlatRandomPtGunProducer",
-#     PGunParameters=cms.PSet(
-#         # particle ids
-#         PartID=cms.vint32(211),
-#         # pt range
-#         MinPt=cms.double(5.0),
-#         MaxPt=cms.double(100.0),
-#         # phi range
-#         MinPhi=cms.double(-math.pi / 6.),
-#         MaxPhi=cms.double(math.pi / 6.),
-#         # abs eta range
-#         MinEta=cms.double(1.594),
-#         MaxEta=cms.double(2.931),
-#     ),
-#     AddAntiParticle=cms.bool(False),
-#     firstRun=cms.untracked.uint32(1),
-#     Verbosity=cms.untracked.int32(1),
-# )
-
-# our custom CloseByParticleGunProducer
 process.generator = cms.EDProducer("CloseByParticleGunProducer",
     PGunParameters=cms.PSet(
         # particle ids
-        PartID=cms.vint32(211),
+        PartID=cms.vint32(particle_id_list([(211, 50), (22, 15), (11, 15), (13, 20)])),
         # max number of particles to shoot at a time
-        NParticles=cms.int32(5),
+        NParticles=cms.int32(10),
         # energy range
         EnMin=cms.double(5.0),
         EnMax=cms.double(100.0),
@@ -98,36 +97,3 @@ process.generator = cms.EDProducer("CloseByParticleGunProducer",
     firstRun=cms.untracked.uint32(1),
     Verbosity=cms.untracked.int32(10),
 )
-
-# CloseByParticleGunProducer as used in CMSSW release
-# process.generator = cms.EDProducer("CloseByParticleGunProducer",
-#     PGunParameters=cms.PSet(
-#         # particle ids
-#         PartID=cms.vint32(211),
-#         # max number of particles to shoot at a time
-#         NParticles=cms.int32(10),
-#         # energy range
-#         EnMin=cms.double(5.0),
-#         EnMax=cms.double(100.0),
-#         # phi range
-#         MinPhi=cms.double(-math.pi / 6.),
-#         MaxPhi=cms.double(math.pi / 6.),
-#         # abs eta range, not used but must be present
-#         MinEta=cms.double(0.),
-#         MaxEta=cms.double(0.),
-
-#         # gun position and overlap settings
-#         RMin=cms.double(calculate_rho(319.0, 1.594)),
-#         RMax=cms.double(calculate_rho(319.0, 2.931)),
-#         ZMin=cms.double(319.0),
-#         ZMax=cms.double(319.0),
-#         Delta=cms.double(1.0),
-#         Pointing=cms.bool(True),
-#         Overlapping=cms.bool(True),
-#         RandomShoot=cms.bool(False),
-
-#     ),
-#     AddAntiParticle=cms.bool(False),
-#     firstRun=cms.untracked.uint32(1),
-#     Verbosity=cms.untracked.int32(10),
-# )
