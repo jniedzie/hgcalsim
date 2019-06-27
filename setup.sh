@@ -33,13 +33,16 @@ action() {
             return "1"
         fi
     fi
+    export HGC_GRID_USER_FIRST_CHAR="${HGC_GRID_USER:0:1}"
 
     # other defaults
     [ -z "$HGC_DATA" ] && export HGC_DATA="$HGC_BASE/.data"
     [ -z "$HGC_SOFTWARE" ] && export HGC_SOFTWARE="$HGC_DATA/software/$( whoami )"
     [ -z "$HGC_STORE" ] && export HGC_STORE="$HGC_DATA/store"
     [ -z "$HGC_STORE_EOS" ] && export HGC_STORE_EOS="/eos/cms/store/cmst3/group/hgcal/CMG_studies/mrieger/hgcalsim"
-    [ -z "$HGC_LOCAL_CACHE" ] && export HGC_LOCAL_CACHE="$HGC_DATA/cache"
+
+    # store the location of the default gfal2 python bindings
+    local gfal2_bindings_file="$( python -c "import gfal2; print(gfal2.__file__)" )"
 
 
     #
@@ -124,6 +127,7 @@ action() {
     # variables for external software
     export PYTHONWARNINGS="ignore"
     export GLOBUS_THREAD_MODEL="none"
+    export HGC_GFAL_PLUGIN_DIR="$HGC_SOFTWARE/gfal_plugins"
 
     # ammend software paths
     hgc_add_bin "$HGC_SOFTWARE/bin"
@@ -157,9 +161,17 @@ action() {
         hgc_install_pip git+https://github.com/riga/plotlib.git
         hgc_install_pip luigi
         hgc_install_pip --no-dependencies git+https://github.com/riga/law.git
+
+        # setup gfal, setup patched plugins, remove the http plugin
+        ln -s "$gfal2_bindings_file" "$HGC_SOFTWARE/lib/python2.7/site-packages"
+        source "$(law location)/contrib/cms/scripts/setup_gfal_plugins.sh" "$HGC_GFAL_PLUGIN_DIR"
+        unlink "$HGC_GFAL_PLUGIN_DIR/libgfal_plugin_http.so"
     }
     export -f hgc_install_software
     hgc_install_software silent
+
+    # update the GFAL_PLUGIN_DIR
+    export GFAL_PLUGIN_DIR="$HGC_GFAL_PLUGIN_DIR"
 
     # add _this_ repo to the python path
     hgc_add_py "$HGC_BASE"
@@ -171,22 +183,23 @@ action() {
 
     export LAW_HOME="$HGC_BASE/.law"
     export LAW_CONFIG_FILE="$HGC_BASE/law.cfg"
-    [ "$HGC_ON_LXPLUS" == "0" ] && export LAW_TARGET_TMP_DIR="$HGC_DATA/tmp"
+
+    # configs that depend on the run location
+    if [ "$HGC_ON_HTCONDOR" = "1" ] || [ "$HGC_ON_GRID" = "1" ]; then
+        export HGC_LOCAL_CACHE="$LAW_JOB_HOME/cache"
+        export HGC_LUIGI_WORKER_KEEP_ALIVE="False"
+        export HGC_LUIGI_WORKER_FORCE_MULTIPROCESSING="True"
+    else
+        export HGC_LOCAL_CACHE="$HGC_DATA/cache"
+        export HGC_LUIGI_WORKER_KEEP_ALIVE="False"
+        export HGC_LUIGI_WORKER_FORCE_MULTIPROCESSING="False"
+    fi
 
     if [ -z "$HGC_SCHEDULER_HOST" ]; then
         2>&1 echo "NOTE: HGC_SCHEDULER_HOST is not set, use '--local-scheduler' in your tasks!"
         export HGC_SCHEDULER_HOST=""
     fi
     export HGC_SCHEDULER_PORT="80"
-
-    # configs that depend on the run location
-    if [ "$HGC_ON_HTCONDOR" = "1" ]; then
-        export HGC_LUIGI_WORKER_KEEP_ALIVE="False"
-        export HGC_LUIGI_WORKER_FORCE_MULTIPROCESSING="True"
-    else
-        export HGC_LUIGI_WORKER_KEEP_ALIVE="False"
-        export HGC_LUIGI_WORKER_FORCE_MULTIPROCESSING="False"
-    fi
 
     # source law's bash completion scipt
     source "$( law completion )" ""

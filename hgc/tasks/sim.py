@@ -56,7 +56,7 @@ class RecoTask(Task, ParallelProdWorkflow):
 
     def workflow_requires(self):
         reqs = super(RecoTask, self).workflow_requires()
-        if not self.cancel_jobs and not self.cleanup_jobs and not self.pilot:
+        if not self.pilot:
             reqs["gsd"] = GSDTask.req(self)
         return reqs
 
@@ -84,7 +84,7 @@ class NtupTask(Task, ParallelProdWorkflow):
 
     def workflow_requires(self):
         reqs = super(NtupTask, self).workflow_requires()
-        if not self.cancel_jobs and not self.cleanup_jobs and not self.pilot:
+        if not self.pilot:
             reqs["reco"] = RecoTask.req(self, _prefer_cli=("version",))
         return reqs
 
