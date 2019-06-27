@@ -24,6 +24,8 @@ class Task(law.Task):
 
     version = luigi.Parameter(description="version of outputs to produce")
     notify = law.NotifyTelegramParameter()
+    eos = luigi.BoolParameter(default=False, description="store local targets on EOS instead of in "
+        "the local HGC_STORE directory, default: False")
 
     exclude_params_req = {"notify"}
     outputs_siblings = True
@@ -42,7 +44,7 @@ class Task(law.Task):
 
     def local_path(self, *path):
         parts = [str(p) for p in self.store_parts() + self.store_parts_opt() + path]
-        return os.path.join(os.environ["HGC_STORE"], *parts)
+        return os.path.join(os.environ["HGC_STORE_EOS" if self.eos else "HGC_STORE"], *parts)
 
     def local_target(self, *args, **kwargs):
         cls = law.LocalFileTarget if args else law.LocalDirectoryTarget
@@ -58,6 +60,8 @@ class HTCondorWorkflow(law.HTCondorWorkflow):
         "status polls in minutes, default: 0.5")
     max_runtime = luigi.FloatParameter(default=24.0, significant=False, description="maximum "
         "runtime in hours")
+    cmst3 = luigi.BoolParameter(default=False, significant=False, description="use the CMS T3 "
+        "HTCondor quota for jobs, default: False")
 
     def htcondor_output_directory(self):
         return law.LocalDirectoryTarget(self.local_path())
@@ -77,5 +81,8 @@ class HTCondorWorkflow(law.HTCondorWorkflow):
         config.custom_content.append(("log", "/dev/null"))
         # set the maximum runtime
         config.custom_content.append(("+MaxRuntime", int(math.floor(self.max_runtime * 3600)) - 1))
+        # CMS T3 group settings
+        if self.cmst3:
+            config.custom_content.append(("+AccountingGroup", "group_u_CMST3.all"))
 
         return config

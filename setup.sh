@@ -38,6 +38,7 @@ action() {
     [ -z "$HGC_DATA" ] && export HGC_DATA="$HGC_BASE/.data"
     [ -z "$HGC_SOFTWARE" ] && export HGC_SOFTWARE="$HGC_DATA/software/$( whoami )"
     [ -z "$HGC_STORE" ] && export HGC_STORE="$HGC_DATA/store"
+    [ -z "$HGC_STORE_EOS" ] && export HGC_STORE_EOS="/eos/cms/store/cmst3/group/hgcal/CMG_studies/mrieger/hgcalsim"
     [ -z "$HGC_LOCAL_CACHE" ] && export HGC_LOCAL_CACHE="$HGC_DATA/cache"
 
 
