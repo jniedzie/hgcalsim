@@ -6,8 +6,6 @@ HGCAL GEN, SIM and DIGI config.
 """
 
 
-print 1/0
-
 import math
 
 import FWCore.ParameterSet.Config as cms
