@@ -70,7 +70,7 @@ class HTCondorWorkflow(law.HTCondorWorkflow):
         return os.path.expandvars("$HGC_BASE/hgc/files/htcondor_bootstrap.sh")
 
     def htcondor_use_local_scheduler(self):
-        return False
+        return True
 
     def htcondor_job_config(self, config, job_num, branches):
         # render_data is rendered into all files sent with a job

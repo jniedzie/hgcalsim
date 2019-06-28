@@ -5,7 +5,7 @@ HGCAL simulation tasks.
 """
 
 
-__all__ = ["GSDTask", "RecoTask", "NtupTask"]
+__all__ = ["GSDTask", "RecoTask", "NtupTask", "CreateTrainingData"]
 
 
 import os
@@ -15,7 +15,7 @@ import law
 import luigi
 
 from hgc.tasks.base import Task, HTCondorWorkflow
-from hgc.util import cms_run_and_publish
+from hgc.util import cms_run_and_publish, log_runtime
 
 
 class ParallelProdWorkflow(law.LocalWorkflow, HTCondorWorkflow):
@@ -103,31 +103,47 @@ class NtupTask(Task, ParallelProdWorkflow):
                 ))
 
 
-class PlotTask(Task):
+class CreateTrainingData(Task, ParallelProdWorkflow):
 
-    n_events = ParallelProdWorkflow.n_events
+    def workflow_requires(self):
+        reqs = super(CreateTrainingData, self).workflow_requires()
+        if not self.pilot:
+            reqs["ntup"] = NtupTask.req(self, _prefer_cli=("version",))
+        return reqs
 
     def requires(self):
-        return NtupTask.req(self, n_tasks=1)
+        return NtupTask.req(self, _prefer_cli=("version",))
 
     def output(self):
-        return law.SiblingFileCollection([
-            self.local_target("eta_phi_{}.png".format(i))
-            for i in range(self.n_events)
-        ])
+        return self.local_target("tuple_{}_n{}.root".format(self.branch, self.n_events))
 
-    @law.decorator.notify
     def run(self):
-        from hgc.plots.plots import particle_rechit_eta_phi_plot
+        import numpy as np
 
-        # ensure that the output directory exists
-        output = self.output()
-        output.dir.touch()
+        data = self.input().load(formatter="root_numpy", treename="ana/hgc")
 
-        # load the data to a structured numpy array
-        input_target = self.input()["collection"][0]
-        data = input_target.load(formatter="root_numpy", treename="ana/hgc")
+        # inp = self.input()
+        # inp.path = "/eos/cms/store/cmst3/group/hgcal/CMG_studies/mrieger/hgcalsim/NtupTask/dev1_testCondor/merged.root"
+        # data = inp.load(formatter="root_numpy", treename="ana/hgc")
 
-        for i, event in enumerate(data):
-            with output[i].localize("w") as tmp_out:
-                particle_rechit_eta_phi_plot(event, "gunparticle", tmp_out.path)
+        def calculate_missing_rechit_fractions(data):
+            fractions_of_missing_rechits = []
+
+            for event in data:
+                n_simclusters = event["simcluster_energy"].shape[0]
+
+                for i in range(n_simclusters):
+                    idxs_missing = event["simcluster_hits_indices"][i] == -1
+                    fractions_of_missing_rechits.append(np.mean(idxs_missing))
+
+            return np.array(fractions_of_missing_rechits)
+
+        with log_runtime(log_prefix="conversion of {} events: ".format(data.shape[0])):
+            fractions_of_missing_rechits = calculate_missing_rechit_fractions(data)
+
+        mean = np.mean(fractions_of_missing_rechits)
+        std = np.var(fractions_of_missing_rechits)**0.5
+        print("{:.1f} ± {:.1f} % of rechits missing per simcluster".format(mean * 100, std * 100))
+
+        from IPython import embed; embed()
+        pass
