@@ -5,11 +5,13 @@ Helpful utilities.
 """
 
 
-__all__ = ["cms_run", "parse_cms_run_event", "cms_run_and_publish"]
+__all__ = ["cms_run", "parse_cms_run_event", "cms_run_and_publish", "log_runtime"]
 
 
 import os
 import re
+import time
+import contextlib
 
 import six
 import law
@@ -56,3 +58,24 @@ def cms_run_and_publish(task, cfg_file, args):
             # obj is the popen object
             if obj.returncode != 0:
                 raise Exception("cmsRun failed failed")
+
+
+@contextlib.contextmanager
+def log_runtime(log_fn=None, log_prefix=""):
+    t0 = time.time()
+
+    try:
+        yield
+
+    finally:
+        t1 = time.time()
+
+        if log_fn is None:
+            log_fn = six.print_
+
+        msg = "runtime is {}".format(law.util.human_time_diff(seconds=t1 - t0))
+
+        if log_prefix:
+            msg = log_prefix + msg
+
+        log_fn(msg)
