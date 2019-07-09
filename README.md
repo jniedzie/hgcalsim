@@ -21,7 +21,7 @@ After cloning, run
 source setup.sh
 ```
 
-This will install CMSSW and a few python packages once. You should source the setup script everytime you start with a new session.
+This will install CMSSW and a few python packages **once**. You should source the setup script everytime you start with a new session.
 
 Also, in order to let the tasks communicate with a central luigi scheduler, you should set
 
@@ -45,4 +45,10 @@ Run GSD, RECO, NTUP and conversion steps:
 
 ```shell
 law run ConverterTask --n-events 2 --branch 0 --version dev
+```
+
+Run the above steps for 10 tasks on HTCondor:
+
+```shell
+law run ConverterTask --n-events 2 --n-tasks 10 --version dev1_converter --pilot --workflow htcondor
 ```
