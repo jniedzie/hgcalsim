@@ -1,0 +1,3 @@
+[submodule "modules/hgcal-rechit-input-dat-gen"]
+	path = modules/hgcal-rechit-input-dat-gen
+	url = https://github.com/kingusiu/hgcal-rechit-input-dat-gen.git

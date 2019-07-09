@@ -5,7 +5,7 @@ HGCAL simulation tasks.
 """
 
 
-__all__ = ["GSDTask", "RecoTask", "NtupTask", "CreateTrainingData"]
+__all__ = ["GSDTask", "RecoTask", "NtupTask", "ConverterTask"]
 
 
 import os
@@ -15,6 +15,7 @@ import law
 import luigi
 
 from hgc.tasks.base import Task, HTCondorWorkflow
+from hgc.tasks.software import CompileConverter
 from hgc.util import cms_run_and_publish, log_runtime
 
 
@@ -52,11 +53,11 @@ class ParallelProdWorkflow(Task, law.LocalWorkflow, HTCondorWorkflow):
         return reqs
 
     def requires(self):
+        reqs = {}
         if self.previous_task:
-            _, cls = self.previous_task
-            return cls.req(self, _prefer_cli=("version",))
-        else:
-            return None
+            key, cls = self.previous_task
+            reqs[key] = cls.req(self, _prefer_cli=("version",))
+        return reqs
 
     def store_parts(self):
         parts = super(ParallelProdWorkflow, self).store_parts()
@@ -80,10 +81,10 @@ class GSDTask(ParallelProdWorkflow):
     def run(self):
         # localize the output file
         # (i.e. create a temporary local representation and move it to the destination on success)
-        with self.output().localize("w") as tmp_out:
+        with self.output().localize("w") as outp:
             # run the command using a helper that publishes the current progress to the scheduler
             cms_run_and_publish(self, "$HGC_BASE/hgc/files/gsd_cfg.py", dict(
-                outputFile=tmp_out.path,
+                outputFile=outp.path,
                 maxEvents=self.n_events,
                 gunType=self.gun_type,
                 gunMin=self.gun_min,
@@ -107,13 +108,12 @@ class RecoTask(ParallelProdWorkflow):
         }
 
     def run(self):
-        outp = self.output()
-        with outp["reco"].localize("w") as tmp_reco, outp["dqm"].localize("w") as tmp_dqm:
-            with self.input().localize("r") as tmp_in:
+        with self.localize_output("w") as outp:
+            with self.localize_input("r") as inp:
                 cms_run_and_publish(self, "$HGC_BASE/hgc/files/reco_cfg.py", dict(
-                    inputFiles=[tmp_in.path],
-                    outputFile=tmp_reco.path,
-                    outputFileDQM=tmp_dqm.path,
+                    inputFiles=[inp["gsd"].path],
+                    outputFile=outp["reco"].path,
+                    outputFileDQM=outp["dqm"].path,
                 ))
 
 
@@ -125,49 +125,68 @@ class NtupTask(ParallelProdWorkflow):
         return self.local_target("ntup_{}_n{}.root".format(self.branch, self.n_events))
 
     def run(self):
-        with self.output().localize("w") as tmp_out:
-            with self.input()["reco"].localize("r") as tmp_in:
+        with self.localize_output("w") as outp:
+            with self.localize_input("r") as inp:
                 cms_run_and_publish(self, "$HGC_BASE/hgc/files/ntup_cfg.py", dict(
-                    inputFiles=[tmp_in.path],
-                    outputFile=tmp_out.path,
+                    inputFiles=[inp["reco"]["reco"].path],
+                    outputFile=outp.path,
                 ))
 
 
-class CreateTrainingData(ParallelProdWorkflow):
+class ConverterTask(ParallelProdWorkflow):
 
     previous_task = ("ntup", NtupTask)
+
+    def workflow_requires(self):
+        reqs = super(ConverterTask, self).workflow_requires()
+        reqs["converter"] = CompileConverter.req(self)
+        return reqs
+
+    def requires(self):
+        reqs = super(ConverterTask, self).requires()
+        reqs["converter"] = CompileConverter.req(self)
+        return reqs
 
     def output(self):
         return self.local_target("tuple_{}_n{}.root".format(self.branch, self.n_events))
 
     @law.decorator.notify
     def run(self):
-        import numpy as np
+        # determine the converter executable
+        inp = self.input()
+        converter = inp["converter"].path
+        converter_dir = inp["converter"].parent
 
-        data = self.input().load(formatter="root_numpy", treename="ana/hgc")
+        # read the config template
+        with converter_dir.child("config/config_template.txt").open("r") as f:
+            template = f.read()
 
-        # inp = self.input()
-        # inp.path = "/eos/cms/store/cmst3/group/hgcal/CMG_studies/mrieger/hgcalsim/NtupTask/dev1_testCondor/merged.root"
-        # data = inp.load(formatter="root_numpy", treename="ana/hgc")
+        # temporary output directory
+        output_dir = law.LocalDirectoryTarget(is_tmp=True)
+        output_dir.touch()
 
-        def calculate_missing_rechit_fractions(data):
-            fractions_of_missing_rechits = []
+        # fill template variables
+        with inp["ntup"].localize("r") as ntup_file:
+            config = template.format(
+                input_dir=ntup_file.parent.path,
+                input_file=ntup_file.basename,
+                output_dir=output_dir.path,
+                hist_output_file="no_used.root",
+                skim_output_prefix="output_file_",
+            )
 
-            for event in data:
-                n_simclusters = event["simcluster_energy"].shape[0]
+            # create a config file required by the converter
+            config_file = law.LocalFileTarget(is_tmp=True)
+            with config_file.open("w") as f:
+                f.write(config)
 
-                for i in range(n_simclusters):
-                    idxs_missing = event["simcluster_hits_indices"][i] == -1
-                    fractions_of_missing_rechits.append(np.mean(idxs_missing))
+            # run the converter
+            env_script = converter_dir.child("env.sh").path
+            cmd = "source {} '' && {} {}".format(env_script, converter, config_file.path)
+            code = law.util.interruptable_popen(cmd, shell=True, executable="/bin/bash")[0]
+            if code != 0:
+                raise Exception("conversion failed")
 
-            return np.array(fractions_of_missing_rechits)
-
-        with log_runtime(log_prefix="conversion of {} events: ".format(data.shape[0])):
-            fractions_of_missing_rechits = calculate_missing_rechit_fractions(data)
-
-        mean = np.mean(fractions_of_missing_rechits)
-        std = np.var(fractions_of_missing_rechits)**0.5
-        print("{:.1f} ± {:.1f} % of rechits missing per simcluster".format(mean * 100, std * 100))
-
-        from IPython import embed; embed()
-        pass
+        # determine the skim output file and
+        output_basename = output_dir.glob("output_file_*")[0]
+        self.output().copy_from_local(output_dir.child(output_basename))

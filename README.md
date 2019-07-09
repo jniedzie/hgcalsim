@@ -9,7 +9,13 @@
 
 ### Setup
 
-After cloning the repository, run
+This repository has submodules, so you should clone it with
+
+```shell
+git clone --recursive https://github.com/riga/hgcalsim.git
+```
+
+After cloning, run
 
 ```shell
 source setup.sh
@@ -24,7 +30,7 @@ export HGC_SCHEDULER_HOST="..."
 export HGC_SCHEDULER_PORT="..."
 ```
 
-most probably in your bashrc file. Otherwise, you should add `--local-scheduler` to all `law run` commands.
+most probably in your bashrc file. **Otherwise**, you should add `--local-scheduler` to all `law run` commands.
 
 
 ### Example commands
@@ -35,8 +41,8 @@ Re-compile CMSSW with 2 cores after making some updates to the code:
 law run CompileCMSSW --n-cores 2
 ```
 
-Run GSD, RECO and NTUP steps and create a simple eta-phi histogram of all rechits and calo particles:
+Run GSD, RECO, NTUP and conversion steps:
 
 ```shell
-law run PlotTask --version dev --n-events 2
+law run ConverterTask --n-events 2 --branch 0 --version dev
 ```

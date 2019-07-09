@@ -5,7 +5,7 @@ Tasks related to software compilation.
 """
 
 
-__all__ = ["CompileCMSSW"]
+__all__ = ["CompileCMSSW", "CompileConverter"]
 
 
 import os
@@ -40,3 +40,24 @@ class CompileCMSSW(Task, law.RunOnceTask):
         code = law.util.interruptable_popen(cmd, cwd=cwd, shell=True, executable="/bin/bash")[0]
         if code != 0:
             raise Exception("CMSSW compilation failed")
+
+
+class CompileConverter(Task):
+
+    version = None
+
+    def output(self):
+        return law.LocalFileTarget("$HGC_BASE/modules/hgcal-rechit-input-dat-gen/analyser")
+
+    @law.decorator.notify
+    def run(self):
+        # create the compilation command
+        cmd = "source env.sh ''; make clean; make"
+
+        # determine the directory in which to run
+        cwd = self.output().parent.path
+
+        # run the command
+        code = law.util.interruptable_popen(cmd, cwd=cwd, shell=True, executable="/bin/bash")[0]
+        if code != 0:
+            raise Exception("converter compilation failed")
