@@ -33,16 +33,3 @@ process.FEVTDEBUGHLToutput.fileName = cms.untracked.string(
     "file:{}".format(options.__getattr__("outputFile", noTags=True)))
 process.DQMoutput.fileName = cms.untracked.string(
     "file:{}".format(options.outputFileDQM))
-
-# Output definition
-# process.FEVTDEBUGHLToutput.fileName = cms.untracked.string('file:partGun_PDGid211_x96_Pt1.0To35.0_RECO_1.root')
-# process.DQMoutput.fileName = cms.untracked.string('file:partGun_PDGid211_x96_Pt1.0To35.0_DQM_1.root')
-
-# Customisation from command line
-# process.hgcalLayerClusters.minClusters = cms.uint32(3)
-# those below are all now the default values - just there to illustrate what can be customised
-#process.hgcalLayerClusters.dependSensor = cms.bool(True)
-#process.hgcalLayerClusters.ecut = cms.double(3.) #multiple of sigma noise if dependSensor is true
-#process.hgcalLayerClusters.kappa = cms.double(9.) #multiple of sigma noise if dependSensor is true
-#process.hgcalLayerClusters.multiclusterRadii = cms.vdouble(2.,2.,2.) #(EE,FH,BH), in com
-#process.hgcalLayerClusters.deltac = cms.vdouble(2.,2.,2.) #(EE,FH,BH), in cm

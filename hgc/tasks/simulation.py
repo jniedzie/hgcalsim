@@ -18,24 +18,61 @@ from hgc.tasks.base import Task, HTCondorWorkflow
 from hgc.util import cms_run_and_publish, log_runtime
 
 
-class ParallelProdWorkflow(law.LocalWorkflow, HTCondorWorkflow):
+class ParallelProdWorkflow(Task, law.LocalWorkflow, HTCondorWorkflow):
 
     n_events = luigi.IntParameter(default=10, description="number of events to generate per task")
     n_tasks = luigi.IntParameter(default=1, description="number of branch tasks to create")
-    seed = luigi.IntParameter(default=0, description="initial random seed, random itself when set "
-        "to 0, will increased by branch number + 1, default: 0")
+    gun_type = luigi.ChoiceParameter(default="closeby", choices=["flatpt", "closeby"],
+        description="the type of the particle gun")
+    gun_min = luigi.FloatParameter(default=5.0, description="minimum value of the gun, either in "
+        "pt or E, default: 5.0")
+    gun_max = luigi.FloatParameter(default=100.0, description="maximum value of the gun, either in "
+        "pt or E, default: 100.0")
+    particle_ids = luigi.Parameter(default="mix", description="comma-separated list of particle "
+        "ids to shoot, or 'mix', default: mix")
+    delta_r = luigi.FloatParameter(default=0.4, description="distance parameter, 'closeby' gun "
+        "only, default: 0.4")
+    n_particles = luigi.IntParameter(default=10, description="number of particles to shoot, "
+        "'closeby' gun only, default: 10")
+    random_shoot = luigi.BoolParameter(default=True, description="shoot a random number of "
+        "particles between [1, n_particles], 'closeby' gun only")
+    seed = luigi.IntParameter(default=1, description="initial random seed, will be increased by "
+        "branch number, default: 1")
 
-    def __init__(self, *args, **kwargs):
-        super(ParallelProdWorkflow, self).__init__(*args, **kwargs)
-
-        if self.seed <= 0:
-            self.seed = random.randint(1, 1e8)
+    previous_task = None
 
     def create_branch_map(self):
         return {i: i for i in range(self.n_tasks)}
 
+    def workflow_requires(self):
+        reqs = super(ParallelProdWorkflow, self).workflow_requires()
+        if self.previous_task and not self.pilot:
+            key, cls = self.previous_task
+            reqs[key] = cls.req(self, _prefer_cli=("version",))
+        return reqs
 
-class GSDTask(Task, ParallelProdWorkflow):
+    def requires(self):
+        if self.previous_task:
+            _, cls = self.previous_task
+            return cls.req(self, _prefer_cli=("version",))
+        else:
+            return None
+
+    def store_parts(self):
+        parts = super(ParallelProdWorkflow, self).store_parts()
+
+        # build the gun string
+        assert(self.gun_type in ("flatpt", "closeby"))
+        gun_str = "{}_{}To{}_ids{}".format(self.gun_type, self.gun_min, self.gun_max,
+            self.particle_ids.replace(",", "-"))
+        if self.gun_type == "closeby":
+            gun_str += "_dR{}_n{}_rnd{:d}".format(self.delta_r, self.n_particles, self.random_shoot)
+        gun_str += "_s{}".format(self.seed)
+
+        return parts + (gun_str,)
+
+
+class GSDTask(ParallelProdWorkflow):
 
     def output(self):
         return self.local_target("gsd_{}_n{}.root".format(self.branch, self.n_events))
@@ -48,20 +85,20 @@ class GSDTask(Task, ParallelProdWorkflow):
             cms_run_and_publish(self, "$HGC_BASE/hgc/files/gsd_cfg.py", dict(
                 outputFile=tmp_out.path,
                 maxEvents=self.n_events,
-                seed=self.seed + self.branch + 1,
+                gunType=self.gun_type,
+                gunMin=self.gun_min,
+                gunMax=self.gun_max,
+                particleIds=self.particle_ids,
+                deltaR=self.delta_r,
+                nParticles=self.n_particles,
+                randomShoot=self.random_shoot,
+                seed=self.seed + self.branch,
             ))
 
 
-class RecoTask(Task, ParallelProdWorkflow):
+class RecoTask(ParallelProdWorkflow):
 
-    def workflow_requires(self):
-        reqs = super(RecoTask, self).workflow_requires()
-        if not self.pilot:
-            reqs["gsd"] = GSDTask.req(self)
-        return reqs
-
-    def requires(self):
-        return GSDTask.req(self)
+    previous_task = ("gsd", GSDTask)
 
     def output(self):
         return {
@@ -80,16 +117,9 @@ class RecoTask(Task, ParallelProdWorkflow):
                 ))
 
 
-class NtupTask(Task, ParallelProdWorkflow):
+class NtupTask(ParallelProdWorkflow):
 
-    def workflow_requires(self):
-        reqs = super(NtupTask, self).workflow_requires()
-        if not self.pilot:
-            reqs["reco"] = RecoTask.req(self, _prefer_cli=("version",))
-        return reqs
-
-    def requires(self):
-        return RecoTask.req(self, _prefer_cli=("version",))
+    previous_task = ("reco", RecoTask)
 
     def output(self):
         return self.local_target("ntup_{}_n{}.root".format(self.branch, self.n_events))
@@ -103,20 +133,14 @@ class NtupTask(Task, ParallelProdWorkflow):
                 ))
 
 
-class CreateTrainingData(Task, ParallelProdWorkflow):
+class CreateTrainingData(ParallelProdWorkflow):
 
-    def workflow_requires(self):
-        reqs = super(CreateTrainingData, self).workflow_requires()
-        if not self.pilot:
-            reqs["ntup"] = NtupTask.req(self, _prefer_cli=("version",))
-        return reqs
-
-    def requires(self):
-        return NtupTask.req(self, _prefer_cli=("version",))
+    previous_task = ("ntup", NtupTask)
 
     def output(self):
         return self.local_target("tuple_{}_n{}.root".format(self.branch, self.n_events))
 
+    @law.decorator.notify
     def run(self):
         import numpy as np
 

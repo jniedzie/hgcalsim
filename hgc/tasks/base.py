@@ -28,7 +28,9 @@ class Task(law.Task):
         "the local HGC_STORE directory, default: False")
 
     exclude_params_req = {"notify"}
-    outputs_siblings = True
+    exclude_params_branch = {"notify"}
+    exclude_params_workflow = {"notify"}
+    output_collection_cls = law.SiblingFileCollection
     workflow_run_decorators = [law.decorator.notify]
     message_cache_size = 20
 

@@ -13,29 +13,15 @@ from reco_prodtools.templates.GSD_fragment import process
 from FWCore.ParameterSet.VarParsing import VarParsing
 
 
+# constants
+HGCAL_Z = 319.0
+HGCAL_ETA_MIN = 1.594
+HGCAL_ETA_MAX = 2.931
+
+
 # helpers
 def calculate_rho(z, eta):
     return z * math.tan(2 * math.atan(math.exp(-eta)))
-
-
-def particle_id_list(content):
-    # content is expected to be a list of 2-tuples with each of them containing a pdg id of a
-    # particle and a relative fraction in percent with a maximum precision of 1% (so, integers!)
-
-    # check if all fractions are integers
-    fractions = [tpl[1] for tpl in content]
-    if not all(isinstance(f, int) for f in fractions):
-        raise TypeError("fractions must be integers, got {}".format(fractions))
-
-    # check if the fractions sum up to 100
-    s = sum(fractions)
-    if s != 100:
-        raise Exception("sum of fractions expected to be 100, got {}".format(s))
-
-    # create the final list of particle ids simply by multiplying with the corresponding fraction
-    ids = sum(([i] * f for i, f in content), [])
-
-    return ids
 
 
 # options
@@ -46,6 +32,20 @@ options.setDefault("outputFile", "gsd.root")
 options.setDefault("maxEvents", 1)
 
 # register custom options
+options.register("gunType", "closeby", VarParsing.multiplicity.singleton, VarParsing.varType.string,
+    "the gun type to use, either 'flatpt' or 'closeby'")
+options.register("gunMin", 5.0, VarParsing.multiplicity.singleton, VarParsing.varType.float,
+    "the minimum gun value, i.e., pt for 'flatpt' or E for 'closeby' gun")
+options.register("gunMax", 100.0, VarParsing.multiplicity.singleton, VarParsing.varType.float,
+    "the maximum gun value, i.e., pt for 'flatpt' or E for 'closeby' gun")
+options.register("particleIds", "mix", VarParsing.multiplicity.singleton, VarParsing.varType.string,
+    "ids of particles to shoot in a comma-separated list or 'mix'")
+options.register("deltaR", 0.4, VarParsing.multiplicity.singleton, VarParsing.varType.float,
+    "deltaR parameter, 'closeby' gun only")
+options.register("nParticles", 10, VarParsing.multiplicity.singleton, VarParsing.varType.int,
+    "number of particles to shoot, 'closeby' gun only")
+options.register("randomShoot", False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+    "shoot a random number of particles between [1, nParticles], 'closeby' gun only")
 options.register("seed", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int,
     "random seed")
 
@@ -63,34 +63,69 @@ process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint3
 process.RandomNumberGeneratorService.VtxSmeared.initialSeed = cms.untracked.uint32(options.seed)
 process.RandomNumberGeneratorService.mix.initialSeed = cms.untracked.uint32(options.seed)
 
-# particle gun setup
-process.generator = cms.EDProducer("CloseByParticleGunProducer",
-    PGunParameters=cms.PSet(
-        # particle ids
-        PartID=cms.vint32(particle_id_list([(211, 50), (22, 15), (11, 15), (13, 20)])),
-        # max number of particles to shoot at a time
-        NParticles=cms.int32(10),
-        # energy range
-        EnMin=cms.double(5.0),
-        EnMax=cms.double(100.0),
-        # phi range
-        MinPhi=cms.double(-math.pi / 6.),
-        MaxPhi=cms.double(math.pi / 6.),
-        # abs eta range, not used but must be present
-        MinEta=cms.double(0.),
-        MaxEta=cms.double(0.),
-        # longitudinal distance in cm
-        ZMin=cms.double(319.0),
-        ZMax=cms.double(319.0),
-        # radial distance in cm
-        RhoMin=cms.double(calculate_rho(319.0, 1.594)),
-        RhoMax=cms.double(calculate_rho(319.0, 2.931)),
-        # direction and overlapp settings
-        DeltaR=cms.double(0.4),
-        Pointing=cms.bool(True),
-        RandomShoot=cms.bool(True),
-    ),
-    AddAntiParticle=cms.bool(False),
-    firstRun=cms.untracked.uint32(1),
-    Verbosity=cms.untracked.int32(10),
-)
+# build the particle id list
+if options.particleIds == "mix":
+    particle_ids = 50 * [211] + 15 * [22] + 15 * [11] + 20 * [13]
+else:
+    # try to parse a comma-separated list
+    try:
+        particle_ids = [int(s) for s in options.particleIds.strip().split(",")]
+    except ValueError:
+        raise ValueError("could not convert list of particle ids '{}' to integers".format(
+            options.particleIds))
+
+# gun setup
+if options.gunType == "flatpt":
+    process.generator = cms.EDProducer("FlatRandomPtGunProducer",
+        PGunParameters=cms.PSet(
+            # particle ids
+            PartID=cms.vint32(particle_ids),
+            # pt range
+            MinPt=cms.double(options.gunMin),
+            MaxPt=cms.double(options.gunMax),
+            # phi range
+            MinPhi=cms.double(-math.pi / 6.),
+            MaxPhi=cms.double(math.pi / 6.),
+            # abs eta range
+            MinEta=cms.double(HGCAL_ETA_MIN),
+            MaxEta=cms.double(HGCAL_ETA_MAX),
+        ),
+        AddAntiParticle=cms.bool(False),
+        firstRun=cms.untracked.uint32(1),
+        Verbosity=cms.untracked.int32(1),
+    )
+
+elif options.gunType == "closeby":
+    process.generator = cms.EDProducer("CloseByParticleGunProducer",
+        PGunParameters=cms.PSet(
+            # particle ids
+            PartID=cms.vint32(particle_ids),
+            # max number of particles to shoot at a time
+            NParticles=cms.int32(options.nParticles),
+            # energy range
+            EnMin=cms.double(options.gunMin),
+            EnMax=cms.double(options.gunMax),
+            # phi range
+            MinPhi=cms.double(-math.pi / 6.),
+            MaxPhi=cms.double(math.pi / 6.),
+            # abs eta range, not used but must be present
+            MinEta=cms.double(0.),
+            MaxEta=cms.double(0.),
+            # longitudinal distance in cm
+            ZMin=cms.double(HGCAL_Z),
+            ZMax=cms.double(HGCAL_Z),
+            # radial distance in cm
+            RhoMin=cms.double(calculate_rho(HGCAL_Z, HGCAL_ETA_MIN)),
+            RhoMax=cms.double(calculate_rho(HGCAL_Z, HGCAL_ETA_MAX)),
+            # direction and overlapp settings
+            DeltaR=cms.double(options.deltaR),
+            Pointing=cms.bool(True),
+            RandomShoot=cms.bool(options.randomShoot),
+        ),
+        AddAntiParticle=cms.bool(False),
+        firstRun=cms.untracked.uint32(1),
+        Verbosity=cms.untracked.int32(10),
+    )
+
+else:
+    raise ValueError("unknown gun type '{}', must be 'flatpt' or 'closeby'".format(options.gunType))
