@@ -15,8 +15,8 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 
 # constants
 HGCAL_Z = 319.0
-HGCAL_ETA_MIN = 1.594
-HGCAL_ETA_MAX = 2.931
+HGCAL_ETA_MIN = 1.6
+HGCAL_ETA_MAX = 3.0
 
 
 # helpers
@@ -34,13 +34,13 @@ options.setDefault("maxEvents", 1)
 # register custom options
 options.register("gunType", "closeby", VarParsing.multiplicity.singleton, VarParsing.varType.string,
     "the gun type to use, either 'flatpt' or 'closeby'")
-options.register("gunMin", 5.0, VarParsing.multiplicity.singleton, VarParsing.varType.float,
+options.register("gunMin", 1.0, VarParsing.multiplicity.singleton, VarParsing.varType.float,
     "the minimum gun value, i.e., pt for 'flatpt' or E for 'closeby' gun")
 options.register("gunMax", 100.0, VarParsing.multiplicity.singleton, VarParsing.varType.float,
     "the maximum gun value, i.e., pt for 'flatpt' or E for 'closeby' gun")
 options.register("particleIds", "mix", VarParsing.multiplicity.singleton, VarParsing.varType.string,
     "ids of particles to shoot in a comma-separated list or 'mix'")
-options.register("deltaR", 0.4, VarParsing.multiplicity.singleton, VarParsing.varType.float,
+options.register("deltaR", 0.1, VarParsing.multiplicity.singleton, VarParsing.varType.float,
     "deltaR parameter, 'closeby' gun only")
 options.register("nParticles", 10, VarParsing.multiplicity.singleton, VarParsing.varType.int,
     "number of particles to shoot, 'closeby' gun only")
@@ -65,7 +65,7 @@ process.RandomNumberGeneratorService.mix.initialSeed = cms.untracked.uint32(opti
 
 # build the particle id list
 if options.particleIds == "mix":
-    particle_ids = 50 * [211] + 15 * [22] + 15 * [11] + 20 * [13]
+    particle_ids = 25 * [211] + 25 * [-211] + 26 * [22] + 12 * [13] + 12 * [-13]
 else:
     # try to parse a comma-separated list
     try:
