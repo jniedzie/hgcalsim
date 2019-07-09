@@ -24,13 +24,13 @@ class ParallelProdWorkflow(Task, law.LocalWorkflow, HTCondorWorkflow):
     n_tasks = luigi.IntParameter(default=1, description="number of branch tasks to create")
     gun_type = luigi.ChoiceParameter(default="closeby", choices=["flatpt", "closeby"],
         description="the type of the particle gun")
-    gun_min = luigi.FloatParameter(default=5.0, description="minimum value of the gun, either in "
+    gun_min = luigi.FloatParameter(default=1.0, description="minimum value of the gun, either in "
         "pt or E, default: 1.0")
     gun_max = luigi.FloatParameter(default=100.0, description="maximum value of the gun, either in "
         "pt or E, default: 100.0")
     particle_ids = luigi.Parameter(default="mix", description="comma-separated list of particle "
         "ids to shoot, or 'mix', default: mix")
-    delta_r = luigi.FloatParameter(default=0.4, description="distance parameter, 'closeby' gun "
+    delta_r = luigi.FloatParameter(default=0.1, description="distance parameter, 'closeby' gun "
         "only, default: 0.1")
     n_particles = luigi.IntParameter(default=10, description="number of particles to shoot, "
         "'closeby' gun only, default: 10")
