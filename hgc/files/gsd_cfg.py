@@ -67,11 +67,11 @@ process.RandomNumberGeneratorService.mix.initialSeed = cms.untracked.uint32(opti
 process.generator = cms.EDProducer("CloseByParticleGunProducer",
     PGunParameters=cms.PSet(
         # particle ids
-        PartID=cms.vint32(particle_id_list([(211, 50), (22, 15), (11, 15), (13, 20)])),
+        PartID=cms.vint32(particle_id_list([(211, 25), (-211,25), (22, 26), (-13, 12), (13, 12)])),
         # max number of particles to shoot at a time
         NParticles=cms.int32(10),
         # energy range
-        EnMin=cms.double(5.0),
+        EnMin=cms.double(1.0),
         EnMax=cms.double(100.0),
         # phi range
         MinPhi=cms.double(-math.pi / 6.),
@@ -83,10 +83,10 @@ process.generator = cms.EDProducer("CloseByParticleGunProducer",
         ZMin=cms.double(319.0),
         ZMax=cms.double(319.0),
         # radial distance in cm
-        RhoMin=cms.double(calculate_rho(319.0, 1.594)),
-        RhoMax=cms.double(calculate_rho(319.0, 2.931)),
+        RhoMin=cms.double(calculate_rho(319.0, 1.6)),
+        RhoMax=cms.double(calculate_rho(319.0, 3.0)),
         # direction and overlapp settings
-        DeltaR=cms.double(0.4),
+        DeltaR=cms.double(0.1),
         Pointing=cms.bool(True),
         RandomShoot=cms.bool(True),
     ),
