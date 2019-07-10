@@ -80,7 +80,7 @@ action() {
     #
 
     export SCRAM_ARCH="slc7_amd64_gcc700"
-    export CMSSW_VERSION="CMSSW_10_6_0_patch2"
+    export CMSSW_VERSION="CMSSW_11_0_0_pre3"
     export CMSSW_BASE="$( hgc_cmssw_base )"
 
     if [ ! -d "$CMSSW_BASE" ]; then
@@ -97,7 +97,7 @@ action() {
         # custom packages
         git cms-init
         git cms-addpkg IOMC/ParticleGuns
-        git cms-merge-topic riga:update_closebyparticlegun
+        git cms-merge-topic riga:update_closebyparticlegun_11_0_0_pre3
         git clone https://github.com/CMS-HGCAL/reco-prodtools.git reco_prodtools
         git clone https://github.com/CMS-HGCAL/reco-ntuples.git RecoNtuples
 
