@@ -5,7 +5,7 @@ HGCAL simulation tasks.
 """
 
 
-__all__ = ["GSDTask", "RecoTask", "NtupTask", "ConverterTask"]
+__all__ = ["GSDTask", "RecoTask", "NtupTask", "ConverterTask", "MergeConvertedFiles"]
 
 
 import os
@@ -16,10 +16,10 @@ import luigi
 
 from hgc.tasks.base import Task, HTCondorWorkflow
 from hgc.tasks.software import CompileConverter
-from hgc.util import cms_run_and_publish, log_runtime
+from hgc.util import cms_run_and_publish, log_runtime, hadd_task
 
 
-class ParallelProdWorkflow(Task, law.LocalWorkflow, HTCondorWorkflow):
+class GeneratorParameters(Task):
 
     n_events = luigi.IntParameter(default=10, description="number of events to generate per task")
     n_tasks = luigi.IntParameter(default=1, description="number of branch tasks to create")
@@ -40,6 +40,22 @@ class ParallelProdWorkflow(Task, law.LocalWorkflow, HTCondorWorkflow):
     seed = luigi.IntParameter(default=1, description="initial random seed, will be increased by "
         "branch number, default: 1")
 
+    def store_parts(self):
+        parts = super(GeneratorParameters, self).store_parts()
+
+        # build the gun string
+        assert(self.gun_type in ("flatpt", "closeby"))
+        gun_str = "{}_{}To{}_ids{}".format(self.gun_type, self.gun_min, self.gun_max,
+            self.particle_ids.replace(",", "-"))
+        if self.gun_type == "closeby":
+            gun_str += "_dR{}_n{}_rnd{:d}".format(self.delta_r, self.n_particles, self.random_shoot)
+        gun_str += "_s{}".format(self.seed)
+
+        return parts + (gun_str,)
+
+
+class ParallelProdWorkflow(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
+
     previous_task = None
 
     def create_branch_map(self):
@@ -58,19 +74,6 @@ class ParallelProdWorkflow(Task, law.LocalWorkflow, HTCondorWorkflow):
             key, cls = self.previous_task
             reqs[key] = cls.req(self, _prefer_cli=("version",))
         return reqs
-
-    def store_parts(self):
-        parts = super(ParallelProdWorkflow, self).store_parts()
-
-        # build the gun string
-        assert(self.gun_type in ("flatpt", "closeby"))
-        gun_str = "{}_{}To{}_ids{}".format(self.gun_type, self.gun_min, self.gun_max,
-            self.particle_ids.replace(",", "-"))
-        if self.gun_type == "closeby":
-            gun_str += "_dR{}_n{}_rnd{:d}".format(self.delta_r, self.n_particles, self.random_shoot)
-        gun_str += "_s{}".format(self.seed)
-
-        return parts + (gun_str,)
 
 
 class GSDTask(ParallelProdWorkflow):
@@ -190,3 +193,28 @@ class ConverterTask(ParallelProdWorkflow):
         # determine the skim output file and
         output_basename = output_dir.glob("output_file_*")[0]
         self.output().copy_from_local(output_dir.child(output_basename))
+
+
+class MergeConvertedFiles(GeneratorParameters, law.CascadeMerge):
+
+    n_merged_files = luigi.IntParameter(description="number of files after merging")
+
+    merge_factor = 10
+
+    def cascade_workflow_requires(self):
+        return ConverterTask.req(self, _prefer_cli=["workflow"])
+
+    def trace_cascade_workflow_inputs(self, inputs):
+        return self.n_tasks
+
+    def cascade_requires(self, start_leaf, end_leaf):
+        return [ConverterTask.req(self, branch=b) for b in range(start_leaf, end_leaf)]
+
+    def cascade_output(self):
+        return law.SiblingFileCollection(
+            self.local_target("tuple_{}Of{}.root".format(i, self.n_merged_files))
+            for i in range(self.n_merged_files)
+        )
+
+    def merge(self, *args, **kwargs):
+        return hadd_task(self, *args, **kwargs)

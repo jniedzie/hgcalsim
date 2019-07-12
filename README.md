@@ -52,3 +52,10 @@ Run the above steps for 10 tasks on HTCondor:
 ```shell
 law run ConverterTask --n-events 2 --n-tasks 10 --version dev1_converter --pilot --workflow htcondor
 ```
+
+Merge the converted files into a configurable number of files (`--n-merged-files`):
+
+```shell
+law run MergeConvertedFiles --n-events 2 --n-tasks 10 --n-merged-files --version dev1_converter \
+    --ConverterTask-pilot --ConverterTask-workflow htcondor
+```

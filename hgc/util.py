@@ -5,7 +5,7 @@ Helpful utilities.
 """
 
 
-__all__ = ["cms_run", "parse_cms_run_event", "cms_run_and_publish", "log_runtime"]
+__all__ = ["cms_run", "parse_cms_run_event", "cms_run_and_publish", "log_runtime", "hadd_task"]
 
 
 import os
@@ -79,3 +79,34 @@ def log_runtime(log_fn=None, log_prefix=""):
             msg = log_prefix + msg
 
         log_fn(msg)
+
+
+def hadd_task(task, inputs, output):
+    tmp_dir = law.LocalDirectoryTarget(is_tmp=True)
+    tmp_dir.touch()
+
+    with task.publish_step("fetching inputs ...", runtime=True):
+        def fetch(inp):
+            inp.copy_to_local(tmp_dir.child(inp.unique_basename, type="f"), cache=False)
+            return inp.unique_basename
+
+        def callback(i):
+            task.publish_message("fetch file {} / {}".format(i + 1, len(inputs)))
+
+        bases = law.util.map_verbose(fetch, inputs, every=5, callback=callback)
+
+    with task.publish_step("merging ...", runtime=True):
+        with output.localize("w") as tmp_out:
+            if len(bases) == 1:
+                tmp_out.path = tmp_dir.child(bases[0]).path
+            else:
+                # merge using hadd
+                bases = " ".join(bases)
+                cmd = "hadd -n 0 -d {} {} {}".format(tmp_dir.path, tmp_out.path, bases)
+                code = law.util.interruptable_popen(cmd, shell=True, executable="/bin/bash",
+                    cwd=tmp_dir.path)[0]
+                if code != 0:
+                    raise Exception("hadd failed")
+
+                task.publish_message("merged file size: {:.2f} {}".format(
+                    *law.util.human_bytes(os.stat(tmp_out.path).st_size)))
