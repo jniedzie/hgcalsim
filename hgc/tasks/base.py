@@ -62,6 +62,8 @@ class HTCondorWorkflow(law.HTCondorWorkflow):
         "status polls in minutes, default: 0.5")
     max_runtime = luigi.FloatParameter(default=24.0, significant=False, description="maximum "
         "runtime in hours")
+    only_missing = luigi.BoolParameter(default=True, significant=False, description="skip tasks "
+        "that are considered complete")
     cmst3 = luigi.BoolParameter(default=False, significant=False, description="use the CMS T3 "
         "HTCondor quota for jobs, default: False")
 

@@ -56,6 +56,6 @@ law run ConverterTask --n-events 2 --n-tasks 10 --version dev1_converter --pilot
 Merge the converted files into a configurable number of files (`--n-merged-files`):
 
 ```shell
-law run MergeConvertedFiles --n-events 2 --n-tasks 10 --n-merged-files --version dev1_converter \
+law run MergeConvertedFiles --n-events 2 --n-tasks 10 --n-merged-files 1 --version dev1_converter \
     --ConverterTask-pilot --ConverterTask-workflow htcondor
 ```
