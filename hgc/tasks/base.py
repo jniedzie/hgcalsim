@@ -34,6 +34,8 @@ class Task(law.Task):
     workflow_run_decorators = [law.decorator.notify]
     message_cache_size = 20
 
+    default_eos_store = "$HGC_STORE_EOS"
+
     def store_parts(self):
         parts = (self.__class__.__name__,)
         return parts
@@ -44,13 +46,15 @@ class Task(law.Task):
             parts += (self.version,)
         return parts
 
-    def local_path(self, *path):
+    def local_path(self, *path, **kwargs):
+        store_path = kwargs.get("store") or (self.default_eos_store if self.eos else "$HGC_STORE")
+        store_path = os.path.expandvars(os.path.expanduser(store_path))
         parts = [str(p) for p in self.store_parts() + self.store_parts_opt() + path]
-        return os.path.join(os.environ["HGC_STORE_EOS" if self.eos else "HGC_STORE"], *parts)
+        return os.path.join(store_path, *parts)
 
     def local_target(self, *args, **kwargs):
         cls = law.LocalFileTarget if args else law.LocalDirectoryTarget
-        return cls(self.local_path(*args), **kwargs)
+        return cls(self.local_path(*args, store=kwargs.pop("store", None)), **kwargs)
 
 
 class HTCondorWorkflow(law.HTCondorWorkflow):

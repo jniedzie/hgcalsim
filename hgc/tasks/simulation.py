@@ -15,7 +15,7 @@ import law
 import luigi
 
 from hgc.tasks.base import Task, HTCondorWorkflow
-from hgc.tasks.software import CompileConverter
+from hgc.tasks.software import CompileConverter, CompileDeepJetCore
 from hgc.util import cms_run_and_publish, log_runtime, hadd_task
 
 
@@ -140,6 +140,8 @@ class ConverterTask(ParallelProdWorkflow):
 
     previous_task = ("ntup", NtupTask)
 
+    default_eos_store = "$HGC_STORE_EOS_GERRIT"
+
     def workflow_requires(self):
         reqs = super(ConverterTask, self).workflow_requires()
         reqs["converter"] = CompileConverter.req(self)
@@ -201,6 +203,8 @@ class MergeConvertedFiles(GeneratorParameters, law.CascadeMerge):
 
     merge_factor = 10
 
+    default_eos_store = "$HGC_STORE_EOS_GERRIT"
+
     def cascade_workflow_requires(self):
         return ConverterTask.req(self, _prefer_cli=["workflow"])
 
@@ -212,12 +216,83 @@ class MergeConvertedFiles(GeneratorParameters, law.CascadeMerge):
 
     def cascade_output(self):
         return law.SiblingFileCollection(
-            self.local_target("tuple_{}Of{}.root".format(i + 1, self.n_merged_files))
+            self.local_target("tuple_{}Of{}_n{}.root".format(
+                i + 1, self.n_merged_files, self.n_events))
             for i in range(self.n_merged_files)
         )
 
     def merge(self, *args, **kwargs):
         return hadd_task(self, *args, **kwargs)
+
+
+class CreateMLDataset(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
+
+    n_merged_files = MergeConvertedFiles.n_merged_files
+
+    def create_branch_map(self):
+        return {i: i for i in range(self.n_merged_files)}
+
+    def workflow_requires(self):
+        reqs = super(CreateMLDataset, self).workflow_requires()
+        if not self.pilot:
+            reqs["merged"] = MergeConvertedFiles.req(self, cascade_tree=-1,
+                _prefer_cli=("version", "workflow"))
+        else:
+            reqs["conv"] = ConverterTask.req(self, _prefer_cli=("version", "workflow"))
+        reqs["deepjetcore"] = CompileDeepJetCore.req(self)
+        return reqs
+
+    def requires(self):
+        return {
+            "merged": MergeConvertedFiles.req(self, cascade_tree=self.branch, workflow="local",
+                _prefer_cli=("version")),
+            "deepjetcore": CompileDeepJetCore.req(self),
+        }
+
+    def output(self):
+        postfix = lambda tmpl: tmpl.format("{}_n{}".format(self.branch, self.n_events))
+        return law.SiblingFileCollection({
+            "x": self.local_target(postfix("x_{}.dat")),
+            "y": self.local_target(postfix("y_{}.dat")),
+            "meta": self.local_target(postfix("meta_{}.meta")),
+            "dc": self.local_target(postfix("dc_{}.dc")),
+            "snapshot": self.local_target(postfix("snapshot_{}.dc")),
+        })
+
+    @law.decorator.notify
+    def run(self):
+        with self.input()["merged"].localize("r") as inp:
+            # write the path of the input file to a temporary file
+            samples_file = law.LocalFileTarget(is_tmp=True)
+            samples_file.touch(content="{}\n".format(inp.path))
+
+            # tmp dir for output files
+            tmp_dir = law.LocalDirectoryTarget(is_tmp=True)
+
+            # create the conversion command
+            compile_task = self.requires()["deepjetcore"]
+            cmd = """
+                {} &&
+                export HGCALML="$HGC_BASE/modules/HGCalML"
+                export DEEPJETCORE_SUBPACKAGE="$HGCALML"
+                export PYTHONPATH="$HGCALML/modules:$PYTHONPATH"
+                export PYTHONPATH="$HGCALML/modules/datastructures:$PYTHONPATH"
+                convertFromRoot.py -n 0 --noRelativePaths -c TrainData_hitlist -o "{}" -i "{}"
+            """.format(compile_task.get_setup_cmd(), tmp_dir.path, samples_file.path)
+
+            # run the command
+            code = law.util.interruptable_popen(cmd, env=compile_task.get_setup_env(), shell=True,
+                executable="/bin/bash")[0]
+            if code != 0:
+                raise Exception("convertFromRoot.py failed")
+
+        with self.output().localize("w") as outp:
+            basename = os.path.splitext(inp.basename)[0]
+            outp["x"].path = tmp_dir.child(basename + ".x.0").path
+            outp["y"].path = tmp_dir.child(basename + ".y.0").path
+            outp["meta"].path = tmp_dir.child(basename + ".meta").path
+            outp["dc"].path = tmp_dir.child("dataCollection.dc").path
+            outp["snapshot"].path = tmp_dir.child("snapshot.dc").path
 
 
 class TestTask(Task):

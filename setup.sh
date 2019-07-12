@@ -40,6 +40,7 @@ action() {
     [ -z "$HGC_SOFTWARE" ] && export HGC_SOFTWARE="$HGC_DATA/software/$( whoami )"
     [ -z "$HGC_STORE" ] && export HGC_STORE="$HGC_DATA/store"
     [ -z "$HGC_STORE_EOS" ] && export HGC_STORE_EOS="/eos/cms/store/cmst3/group/hgcal/CMG_studies/$HGC_GRID_USER/hgcalsim"
+    [ -z "$HGC_CONDA_DIR" ] && export HGC_CONDA_DIR="/afs/cern.ch/work/j/jkiesele/public/conda_env/miniconda3"
 
     # store the location of the default gfal2 python bindings
     local gfal2_bindings_file="$( python -c "import gfal2; print(gfal2.__file__)" )"
@@ -125,6 +126,7 @@ action() {
     #
 
     # variables for external software
+    export HGC_PYTHONPATH_ORIG="$PYTHONPATH"
     export PYTHONWARNINGS="ignore"
     export GLOBUS_THREAD_MODEL="none"
     export HGC_GFAL_PLUGIN_DIR="$HGC_SOFTWARE/gfal_plugins"

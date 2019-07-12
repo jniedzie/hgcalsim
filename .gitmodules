@@ -1,3 +1,9 @@
 [submodule "modules/hgcal-rechit-input-dat-gen"]
 	path = modules/hgcal-rechit-input-dat-gen
 	url = https://github.com/kingusiu/hgcal-rechit-input-dat-gen.git
+[submodule "modules/DeepJetCore"]
+	path = modules/DeepJetCore
+	url = https://github.com/DL4Jets/DeepJetCore
+[submodule "modules/HGCalML"]
+	path = modules/HGCalML
+	url = https://github.com/jkiesele/HGCalML.git
