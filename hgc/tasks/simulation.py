@@ -140,8 +140,6 @@ class ConverterTask(ParallelProdWorkflow):
 
     previous_task = ("ntup", NtupTask)
 
-    default_eos_store = "$HGC_STORE_EOS_GERRIT"
-
     def workflow_requires(self):
         reqs = super(ConverterTask, self).workflow_requires()
         reqs["converter"] = CompileConverter.req(self)
@@ -202,8 +200,6 @@ class MergeConvertedFiles(GeneratorParameters, law.CascadeMerge):
     n_merged_files = luigi.IntParameter(description="number of files after merging")
 
     merge_factor = 10
-
-    default_eos_store = "$HGC_STORE_EOS_GERRIT"
 
     def cascade_workflow_requires(self):
         return ConverterTask.req(self, _prefer_cli=["workflow"])
@@ -293,113 +289,3 @@ class CreateMLDataset(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
             outp["meta"].path = tmp_dir.child(basename + ".meta").path
             outp["dc"].path = tmp_dir.child("dataCollection.dc").path
             outp["snapshot"].path = tmp_dir.child("snapshot.dc").path
-
-
-class TestTask(Task):
-
-    version = None
-
-    def output(self):
-        return self.local_target("hist.png")
-
-    @law.decorator.notify
-    def run(self):
-        import numpy as np
-
-        # data = self.input().load(formatter="root_numpy", treename="ana/hgc")
-
-        # inp = law.LocalFileTarget("/eos/user/m/mrieger/data/hgc/mergedntup2.root")
-        # with log_runtime():
-        #     data = inp.load(formatter="root_numpy", treename="ana/hgc",
-        #         branches=["simcluster_hits_indices", "rechit_energy"])
-
-        def calculate_missing_rechit_fractions(data):
-            fractions_of_missing_rechits = []
-
-            for event in data:
-                n_simclusters = event["simcluster_energy"].shape[0]
-
-                for i in range(n_simclusters):
-                    idxs_missing = event["simcluster_hits_indices"][i] == -1
-                    fractions_of_missing_rechits.append(np.mean(idxs_missing))
-
-            return np.array(fractions_of_missing_rechits)
-
-        # with log_runtime(log_prefix="conversion of {} events: ".format(data.shape[0])):
-        #     fractions_of_missing_rechits = calculate_missing_rechit_fractions(data)
-        # mean = np.mean(fractions_of_missing_rechits)
-        # std = np.var(fractions_of_missing_rechits)**0.5
-        # print("{:.1f} ± {:.1f} % of rechits missing per simcluster".format(mean * 100, std * 100))
-
-        def calculate_hit_stats(data):
-            flen = lambda l: float(len(l))
-            stats = []
-            for event in data:
-                rec_det_ids = set(event["rechit_detid"])
-
-                sim_det_ids = set()
-                matched_sim_det_ids = set()
-                for idxs, ids in zip(event["simcluster_hits_indices"], event["simcluster_hits"]):
-                    sim_det_ids |= set(ids)
-                    matched_sim_det_ids |= set(ids[idxs != -1])
-
-                    # assert(set(event["rechit_detid"][idxs[idxs != -1]]) == set(ids[idxs != -1]))
-
-                # assert(len(matched_sim_det_ids - rec_det_ids) == 0)
-
-                stats.append([
-                    # number of reconstructed hits
-                    flen(rec_det_ids),
-                    # number of hits, connected to at least one sim cluster
-                    flen(sim_det_ids),
-                    # number of reconstructed hits, connected to at least one sim cluster
-                    flen(matched_sim_det_ids),
-                ])
-
-            return np.array(stats)
-
-        cache_path = "/tmp/mrieger/testtaskcache.npy"
-        if os.path.exists(cache_path):
-            stats = np.load(cache_path)
-        else:
-            inp = law.LocalFileTarget("/eos/user/m/mrieger/data/hgc/mergedntup2.root")
-            with log_runtime():
-                data = inp.load(formatter="root_numpy", treename="ana/hgc",
-                    branches=["simcluster_hits", "simcluster_hits_indices", "rechit_detid"])
-            stats = calculate_hit_stats(data)
-            np.save(cache_path, stats)
-
-        import plotlib.root as r
-        import ROOT
-
-        r.setup_style()
-        canvas, (pad,) = r.routines.create_canvas()
-        pad.cd()
-
-        binning = (1, 36., 46., 1, 36., 46.)
-        title = ";N RecHits / 10^{3};N RecHits - N SimHits / 10^{3};Entries"
-        dummy_hist = ROOT.TH2F("h", title, *binning)
-        graph = ROOT.TGraph(stats.shape[0])
-
-        noise_hits = stats[:, 0] - stats[:, 2]
-        for j in range(stats.shape[0]):
-            graph.SetPoint(j, stats[j][0] * 0.001, noise_hits[j] * 0.001)
-
-        r.setup_hist(dummy_hist, pad=pad)
-        r.setup_graph(graph, {"MarkerSize": 0.25, "MarkerColor": 2})
-
-        dummy_hist.Draw()
-        graph.Draw("P")
-
-        # cms label
-        cms_labels = r.routines.create_cms_labels(postfix="Simulation")
-        cms_labels[0].Draw()
-        cms_labels[1].Draw()
-
-        # phase 2 label
-        phase2_label = r.routines.create_top_right_label("HGCal, Phase II (D41)")
-        phase2_label.Draw()
-
-        r.update_canvas(canvas)
-        with self.output().localize() as outp:
-            canvas.SaveAs(outp.path)
