@@ -22,6 +22,7 @@ class CompileCMSSW(Task, law.RunOnceTask):
         "use for compiling cmssw")
     clean = luigi.BoolParameter(default=False, description="run 'scram b clean' before compiling")
 
+    eos = None
     version = None
 
     @law.decorator.notify
@@ -44,6 +45,7 @@ class CompileCMSSW(Task, law.RunOnceTask):
 
 class CompileConverter(Task):
 
+    eos = None
     version = None
 
     def output(self):
@@ -70,6 +72,7 @@ class CompileDeepJetCore(Task):
         "for compilation")
     clean = luigi.BoolParameter(default=False, description="run 'make clean' before compilation")
 
+    eos = None
     version = None
 
     def output(self):

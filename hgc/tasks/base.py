@@ -34,6 +34,7 @@ class Task(law.Task):
     workflow_run_decorators = [law.decorator.notify]
     message_cache_size = 20
 
+    default_store = "$HGC_STORE"
     default_eos_store = "$HGC_STORE_EOS"
 
     def store_parts(self):
@@ -47,7 +48,8 @@ class Task(law.Task):
         return parts
 
     def local_path(self, *path, **kwargs):
-        store_path = kwargs.get("store") or (self.default_eos_store if self.eos else "$HGC_STORE")
+        default_store = self.default_eos_store if self.eos else self.default_store
+        store_path = kwargs.get("store") or default_store
         store_path = os.path.expandvars(os.path.expanduser(store_path))
         parts = [str(p) for p in self.store_parts() + self.store_parts_opt() + path]
         return os.path.join(store_path, *parts)

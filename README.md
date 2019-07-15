@@ -15,6 +15,14 @@ This repository has submodules, so you should clone it with
 git clone --recursive https://github.com/riga/hgcalsim.git
 ```
 
+If you want to write files into the common hgcalsim output directory on EOS at `/eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim` (given that you have the necessary permissions), export
+
+```shell
+export HGC_STORE_EOS="/eos/cms/store/cmst3/group/hgcal/CMG_studies/hgcalsim"
+```
+
+or put the above line in your bashrc.
+
 After cloning, run
 
 ```shell
@@ -23,7 +31,12 @@ source setup.sh
 
 This will install CMSSW and a few python packages **once**. You should source the setup script everytime you start with a new session.
 
-Also, in order to let the tasks communicate with a central luigi scheduler, you should set
+
+### Luigi scheduler
+
+Task statuses and dependency trees can be visualized live using a central luigi scheduler. **This is optional** and no strict requirement to run tasks.
+
+In order to let the tasks communicate with a central luigi scheduler, you should set
 
 ```shell
 export HGC_SCHEDULER_HOST="..."
@@ -31,6 +44,11 @@ export HGC_SCHEDULER_PORT="..."
 ```
 
 most probably in your bashrc file. **Otherwise**, you should add `--local-scheduler` to all `law run` commands.
+
+
+### Storage on EOS
+
+By default, most of the tasks write their output files to EOS. To prevent that (either because you don't have the necessary permissions on in case you want to test your code), add `--eos False` to the `law run` commands.
 
 
 ### Example commands

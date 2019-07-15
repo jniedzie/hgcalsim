@@ -39,7 +39,8 @@ action() {
     [ -z "$HGC_DATA" ] && export HGC_DATA="$HGC_BASE/.data"
     [ -z "$HGC_SOFTWARE" ] && export HGC_SOFTWARE="$HGC_DATA/software/$( whoami )"
     [ -z "$HGC_STORE" ] && export HGC_STORE="$HGC_DATA/store"
-    [ -z "$HGC_STORE_EOS" ] && export HGC_STORE_EOS="/eos/cms/store/cmst3/group/hgcal/CMG_studies/$HGC_GRID_USER/hgcalsim"
+    [ -z "$HGC_STORE_EOS_USER" ] && export HGC_STORE_EOS_USER="/eos/cms/store/cmst3/group/hgcal/CMG_studies/$HGC_GRID_USER/hgcalsim"
+    [ -z "$HGC_STORE_EOS" ] && export HGC_STORE_EOS="$HGC_STORE_EOS_USER"
     [ -z "$HGC_CONDA_DIR" ] && export HGC_CONDA_DIR="/afs/cern.ch/work/j/jkiesele/public/conda_env/miniconda3"
 
     # store the location of the default gfal2 python bindings
@@ -126,9 +127,10 @@ action() {
     #
 
     # variables for external software
-    export HGC_PYTHONPATH_ORIG="$PYTHONPATH"
-    export PYTHONWARNINGS="ignore"
     export GLOBUS_THREAD_MODEL="none"
+    export PYTHONWARNINGS="ignore"
+    export HGC_PYTHONPATH_ORIG="$PYTHONPATH"
+    export HGC_GFAL_PLUGIN_DIR_ORIG="$GFAL_PLUGIN_DIR"
     export HGC_GFAL_PLUGIN_DIR="$HGC_SOFTWARE/gfal_plugins"
 
     # ammend software paths
@@ -166,6 +168,7 @@ action() {
 
         # setup gfal, setup patched plugins, remove the http plugin
         ln -s "$gfal2_bindings_file" "$HGC_SOFTWARE/lib/python2.7/site-packages"
+        export GFAL_PLUGIN_DIR="$HGC_GFAL_PLUGIN_DIR_ORIG"
         source "$(law location)/contrib/cms/scripts/setup_gfal_plugins.sh" "$HGC_GFAL_PLUGIN_DIR"
         unlink "$HGC_GFAL_PLUGIN_DIR/libgfal_plugin_http.so"
     }
