@@ -74,7 +74,7 @@ class HTCondorWorkflow(law.HTCondorWorkflow):
         "HTCondor quota for jobs, default: False")
 
     def htcondor_output_directory(self):
-        return law.LocalDirectoryTarget(self.local_path())
+        return law.LocalDirectoryTarget(self.local_path(store="$HGC_STORE"))
 
     def htcondor_bootstrap_file(self):
         return os.path.expandvars("$HGC_BASE/hgc/files/htcondor_bootstrap.sh")

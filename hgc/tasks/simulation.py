@@ -65,14 +65,14 @@ class ParallelProdWorkflow(GeneratorParameters, law.LocalWorkflow, HTCondorWorkf
         reqs = super(ParallelProdWorkflow, self).workflow_requires()
         if self.previous_task and not self.pilot:
             key, cls = self.previous_task
-            reqs[key] = cls.req(self, _prefer_cli=("version",))
+            reqs[key] = cls.req(self, _prefer_cli=["version"])
         return reqs
 
     def requires(self):
         reqs = {}
         if self.previous_task:
             key, cls = self.previous_task
-            reqs[key] = cls.req(self, _prefer_cli=("version",))
+            reqs[key] = cls.req(self, _prefer_cli=["version"])
         return reqs
 
 
@@ -224,6 +224,12 @@ class MergeConvertedFiles(GeneratorParameters, law.CascadeMerge):
 class CreateMLDataset(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
 
     n_merged_files = MergeConvertedFiles.n_merged_files
+    data_structure = luigi.ChoiceParameter(default="hitlist",
+        choices=["hitlist", "hitlist_layercluster"], description="name of the data structure to "
+        "convert, prefixed by 'TrainData_', default: hitlist")
+
+    def store_parts(self):
+        return super(CreateMLDataset, self).store_parts() + (self.data_structure,)
 
     def create_branch_map(self):
         return {i: i for i in range(self.n_merged_files)}
@@ -232,32 +238,31 @@ class CreateMLDataset(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
         reqs = super(CreateMLDataset, self).workflow_requires()
         if not self.pilot:
             reqs["merged"] = MergeConvertedFiles.req(self, cascade_tree=-1,
-                _prefer_cli=("version", "workflow"))
+                _prefer_cli=["version", "workflow"])
         else:
-            reqs["conv"] = ConverterTask.req(self, _prefer_cli=("version", "workflow"))
+            reqs["conv"] = ConverterTask.req(self, _prefer_cli=["version", "workflow"])
         reqs["deepjetcore"] = CompileDeepJetCore.req(self)
         return reqs
 
     def requires(self):
         return {
             "merged": MergeConvertedFiles.req(self, cascade_tree=self.branch, workflow="local",
-                _prefer_cli=("version")),
+                _exclude=["branch"], _prefer_cli=["version"]),
             "deepjetcore": CompileDeepJetCore.req(self),
         }
 
     def output(self):
-        postfix = lambda tmpl: tmpl.format("{}_n{}".format(self.branch, self.n_events))
+        basename = os.path.splitext(self.input()["merged"]["collection"][0].basename)[0]
         return law.SiblingFileCollection({
-            "x": self.local_target(postfix("x_{}.dat")),
-            "y": self.local_target(postfix("y_{}.dat")),
-            "meta": self.local_target(postfix("meta_{}.meta")),
-            "dc": self.local_target(postfix("dc_{}.dc")),
-            "snapshot": self.local_target(postfix("snapshot_{}.dc")),
+            "x": self.local_target(basename + ".x.0"),
+            "y": self.local_target(basename + ".y.0"),
+            "meta": self.local_target(basename + ".meta"),
+            "dc": self.local_target(basename + ".dc"),
         })
 
     @law.decorator.notify
     def run(self):
-        with self.input()["merged"].localize("r") as inp:
+        with self.input()["merged"]["collection"][0].localize("r") as inp:
             # write the path of the input file to a temporary file
             samples_file = law.LocalFileTarget(is_tmp=True)
             samples_file.touch(content="{}\n".format(inp.path))
@@ -273,8 +278,9 @@ class CreateMLDataset(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
                 export DEEPJETCORE_SUBPACKAGE="$HGCALML"
                 export PYTHONPATH="$HGCALML/modules:$PYTHONPATH"
                 export PYTHONPATH="$HGCALML/modules/datastructures:$PYTHONPATH"
-                convertFromRoot.py -n 0 --noRelativePaths -c TrainData_hitlist -o "{}" -i "{}"
-            """.format(compile_task.get_setup_cmd(), tmp_dir.path, samples_file.path)
+                convertFromRoot.py -n 0 --noRelativePaths -c TrainData_{} -o "{}" -i "{}"
+            """.format(compile_task.get_setup_cmd(), self.data_structure, tmp_dir.path,
+                samples_file.path)
 
             # run the command
             code = law.util.interruptable_popen(cmd, env=compile_task.get_setup_env(), shell=True,
@@ -282,10 +288,8 @@ class CreateMLDataset(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
             if code != 0:
                 raise Exception("convertFromRoot.py failed")
 
-        with self.output().localize("w") as outp:
-            basename = os.path.splitext(inp.basename)[0]
-            outp["x"].path = tmp_dir.child(basename + ".x.0").path
-            outp["y"].path = tmp_dir.child(basename + ".y.0").path
-            outp["meta"].path = tmp_dir.child(basename + ".meta").path
-            outp["dc"].path = tmp_dir.child("dataCollection.dc").path
-            outp["snapshot"].path = tmp_dir.child("snapshot.dc").path
+        outp = self.output()
+        outp["x"].copy_from_local(tmp_dir.child(outp["x"].basename))
+        outp["y"].copy_from_local(tmp_dir.child(outp["y"].basename))
+        outp["meta"].copy_from_local(tmp_dir.child(outp["meta"].basename))
+        outp["dc"].copy_from_local(tmp_dir.child("dataCollection.dc"))
