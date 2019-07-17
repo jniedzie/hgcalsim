@@ -35,8 +35,10 @@ class GeneratorParameters(Task):
         "only, default: 0.1")
     n_particles = luigi.IntParameter(default=10, description="number of particles to shoot, "
         "'closeby' gun only, default: 10")
+    exact_shoot = luigi.BoolParameter(default=False, description="shoot exactly the particles "
+	"given particle-ids in that order and quantity, 'closeby' gun only, default: False")
     random_shoot = luigi.BoolParameter(default=True, description="shoot a random number of "
-        "particles between [1, n_particles], 'closeby' gun only")
+        "particles between [1, n_particles], 'closeby' gun only, default: True")
     seed = luigi.IntParameter(default=1, description="initial random seed, will be increased by "
         "branch number, default: 1")
 
@@ -48,7 +50,12 @@ class GeneratorParameters(Task):
         gun_str = "{}_{}To{}_ids{}".format(self.gun_type, self.gun_min, self.gun_max,
             self.particle_ids.replace(",", "-"))
         if self.gun_type == "closeby":
-            gun_str += "_dR{}_n{}_rnd{:d}".format(self.delta_r, self.n_particles, self.random_shoot)
+            gun_str += "_dR{}_n{}".format(self.delta_r, self.n_particles)
+            # add the exact or random shoot postfix for backwards compatibility
+            if self.exact_shoot:
+                gun_str += "_ext1"
+            else:
+                gun_str += "_rnd{:d}".format(self.random_shoot)
         gun_str += "_s{}".format(self.seed)
 
         return parts + (gun_str,)
@@ -95,6 +102,7 @@ class GSDTask(ParallelProdWorkflow):
                 particleIds=self.particle_ids,
                 deltaR=self.delta_r,
                 nParticles=self.n_particles,
+                exactShoot=self.exact_shoot,
                 randomShoot=self.random_shoot,
                 seed=self.seed + self.branch,
             ))

@@ -99,7 +99,7 @@ action() {
         # custom packages
         git cms-init
         git cms-addpkg IOMC/ParticleGuns
-        git cms-merge-topic riga:update_closebyparticlegun_11_0_0_pre3
+        git cms-merge-topic riga:add_CloseByFlatDeltaRGunProducer_11_0_0_pre3
         git clone https://github.com/CMS-HGCAL/reco-prodtools.git reco_prodtools
         git clone https://github.com/CMS-HGCAL/reco-ntuples.git RecoNtuples
 

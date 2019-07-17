@@ -44,6 +44,8 @@ options.register("deltaR", 0.1, VarParsing.multiplicity.singleton, VarParsing.va
     "deltaR parameter, 'closeby' gun only")
 options.register("nParticles", 10, VarParsing.multiplicity.singleton, VarParsing.varType.int,
     "number of particles to shoot, 'closeby' gun only")
+options.register("exactShoot", False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+    "shoot exactly what is given in particleIds in that order and quantity, 'closeby' gun only")
 options.register("randomShoot", False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
     "shoot a random number of particles between [1, nParticles], 'closeby' gun only")
 options.register("seed", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int,
@@ -65,6 +67,8 @@ process.RandomNumberGeneratorService.mix.initialSeed = cms.untracked.uint32(opti
 
 # build the particle id list
 if options.particleIds == "mix":
+    if options.exactShoot:
+        raise Exception("when exactShoot is True, particleIds must not be 'mix'")
     particle_ids = 25 * [211] + 25 * [-211] + 26 * [22] + 12 * [13] + 12 * [-13]
 else:
     # try to parse a comma-separated list
@@ -96,7 +100,7 @@ if options.gunType == "flatpt":
     )
 
 elif options.gunType == "closeby":
-    process.generator = cms.EDProducer("CloseByParticleGunProducer",
+    process.generator = cms.EDProducer("CloseByFlatDeltaRGunProducer",
         PGunParameters=cms.PSet(
             # particle ids
             PartID=cms.vint32(particle_ids),
@@ -119,7 +123,7 @@ elif options.gunType == "closeby":
             RhoMax=cms.double(calculate_rho(HGCAL_Z, HGCAL_ETA_MAX)),
             # direction and overlapp settings
             DeltaR=cms.double(options.deltaR),
-            Pointing=cms.bool(True),
+            ExactShoot=cms.bool(options.exactShoot),
             RandomShoot=cms.bool(options.randomShoot),
         ),
         AddAntiParticle=cms.bool(False),
