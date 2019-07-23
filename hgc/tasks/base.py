@@ -76,6 +76,9 @@ class HTCondorWorkflow(law.HTCondorWorkflow):
     def htcondor_output_directory(self):
         return law.LocalDirectoryTarget(self.local_path(store="$HGC_STORE"))
 
+    def htcondor_wrapper_file(self):
+        return os.path.expandvars("$HGC_BASE/hgc/files/bash_wrapper.sh")
+
     def htcondor_bootstrap_file(self):
         return os.path.expandvars("$HGC_BASE/hgc/files/htcondor_bootstrap.sh")
 
@@ -89,6 +92,9 @@ class HTCondorWorkflow(law.HTCondorWorkflow):
         config.custom_content.append(("requirements", "(OpSysAndVer =?= \"CentOS7\")"))
         # copy the entire environment
         config.custom_content.append(("getenv", "true"))
+        # fix for CERN htcondor batch: pass the true PATH variable as a render variable which is
+        # used in the custom wapper file to set PATH
+        config.render_variables["env_path"] = os.getenv("PATH")
         # the CERN htcondor setup requires a "log" config, but we can safely set it to /dev/null
         # if you are interested in the logs of the batch system itself, set a meaningful value here
         config.custom_content.append(("log", "/dev/null"))

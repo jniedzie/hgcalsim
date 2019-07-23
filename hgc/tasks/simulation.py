@@ -36,7 +36,7 @@ class GeneratorParameters(Task):
     n_particles = luigi.IntParameter(default=10, description="number of particles to shoot, "
         "'closeby' gun only, default: 10")
     exact_shoot = luigi.BoolParameter(default=False, description="shoot exactly the particles "
-	"given particle-ids in that order and quantity, 'closeby' gun only, default: False")
+        "given particle-ids in that order and quantity, 'closeby' gun only, default: False")
     random_shoot = luigi.BoolParameter(default=True, description="shoot a random number of "
         "particles between [1, n_particles], 'closeby' gun only, default: True")
     seed = luigi.IntParameter(default=1, description="initial random seed, will be increased by "
@@ -245,7 +245,7 @@ class CreateMLDataset(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
     def workflow_requires(self):
         reqs = super(CreateMLDataset, self).workflow_requires()
         if not self.pilot:
-            reqs["merged"] = MergeConvertedFiles.req(self, cascade_tree=-1,
+            reqs["merged"] = MergeConvertedFiles.req(self, cascade_tree=-1, workflow="local",
                 _prefer_cli=["version", "workflow"])
         else:
             reqs["conv"] = ConverterTask.req(self, _prefer_cli=["version", "workflow"])
@@ -254,13 +254,13 @@ class CreateMLDataset(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
 
     def requires(self):
         return {
-            "merged": MergeConvertedFiles.req(self, cascade_tree=self.branch, workflow="local",
-                _exclude=["branch"], _prefer_cli=["version"]),
+            "merged": MergeConvertedFiles.req(self, cascade_tree=self.branch, branch=0,
+                workflow="local", _prefer_cli=["version"]),
             "deepjetcore": CompileDeepJetCore.req(self),
         }
 
     def output(self):
-        basename = os.path.splitext(self.input()["merged"]["collection"][0].basename)[0]
+        basename = os.path.splitext(self.input()["merged"].basename)[0]
         return law.SiblingFileCollection({
             "x": self.local_target(basename + ".x.0"),
             "y": self.local_target(basename + ".y.0"),
@@ -284,8 +284,7 @@ class CreateMLDataset(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
                 {} &&
                 export HGCALML="$HGC_BASE/modules/HGCalML"
                 export DEEPJETCORE_SUBPACKAGE="$HGCALML"
-                export PYTHONPATH="$HGCALML/modules:$PYTHONPATH"
-                export PYTHONPATH="$HGCALML/modules/datastructures:$PYTHONPATH"
+                export PYTHONPATH="$HGCALML/modules:$HGCALML/modules/datastructures:$PYTHONPATH"
                 convertFromRoot.py -n 0 --noRelativePaths -c TrainData_{} -o "{}" -i "{}"
             """.format(compile_task.get_setup_cmd(), self.data_structure, tmp_dir.path,
                 samples_file.path)
