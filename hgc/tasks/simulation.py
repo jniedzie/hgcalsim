@@ -270,7 +270,7 @@ class CreateMLDataset(GeneratorParameters, law.LocalWorkflow, HTCondorWorkflow):
 
     @law.decorator.notify
     def run(self):
-        with self.input()["merged"]["collection"][0].localize("r") as inp:
+        with self.input()["merged"].localize("r") as inp:
             # write the path of the input file to a temporary file
             samples_file = law.LocalFileTarget(is_tmp=True)
             samples_file.touch(content="{}\n".format(inp.path))
