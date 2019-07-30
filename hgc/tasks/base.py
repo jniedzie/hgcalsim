@@ -24,8 +24,8 @@ class Task(law.Task):
 
     version = luigi.Parameter(description="version of outputs to produce")
     notify = law.NotifyTelegramParameter(significant=False)
-    eos = luigi.BoolParameter(default=True, description="store local targets on EOS instead of in "
-        "the local HGC_STORE directory, default: True")
+    eos = luigi.BoolParameter(default=False, description="store local targets on EOS instead of in "
+        "the local HGC_STORE directory, default: False")
 
     exclude_params_req = {"notify"}
     exclude_params_branch = {"notify"}

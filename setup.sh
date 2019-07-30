@@ -38,7 +38,7 @@ action() {
     # other defaults
     [ -z "$HGC_DATA" ] && export HGC_DATA="$HGC_BASE/.data"
     [ -z "$HGC_SOFTWARE" ] && export HGC_SOFTWARE="$HGC_DATA/software/$( whoami )"
-    [ -z "$HGC_STORE" ] && export HGC_STORE="$HGC_DATA/store"
+    [ -z "$HGC_STORE" ] && export HGC_STORE="$HGC_BASE/store"
     [ -z "$HGC_STORE_EOS_USER" ] && export HGC_STORE_EOS_USER="/eos/cms/store/cmst3/group/hgcal/CMG_studies/$HGC_GRID_USER/hgcalsim"
     [ -z "$HGC_STORE_EOS" ] && export HGC_STORE_EOS="$HGC_STORE_EOS_USER"
     [ -z "$HGC_CONDA_DIR" ] && export HGC_CONDA_DIR="/afs/cern.ch/work/j/jkiesele/public/conda_env/miniconda3"
@@ -71,7 +71,7 @@ action() {
             2>&1 echo "CMSSW_VERSION must be set for hgc_cmssw_path"
             return "1"
         fi
-        echo "$HGC_DATA/cmssw/$( whoami )/$CMSSW_VERSION"
+        echo "$HGC_BASE/cmssw/$( whoami )/$CMSSW_VERSION"
     }
     export -f hgc_cmssw_base
 
