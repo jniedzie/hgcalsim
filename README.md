@@ -45,6 +45,8 @@ export HGC_SCHEDULER_PORT="..."
 
 most probably in your bashrc file. **Otherwise**, you should add `--local-scheduler` to all `law run` commands.
 
+To run a personal scheduler (e.g. on [OpenStack](https://openstack.cern.ch/project)), you can use [this docker image](https://cloud.docker.com/u/riga/repository/docker/riga/luigid-nginx).
+
 
 ### Storage on EOS
 
