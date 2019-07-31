@@ -82,8 +82,11 @@ action() {
     # (hardcoded for the moment)
     #
 
+    # default CMSSW version
+    [ -z "$HGC_CMSSW_VERSION" ] && export HGC_CMSSW_VERSION="CMSSW_11_0_0_pre4"
+
     export SCRAM_ARCH="slc7_amd64_gcc700"
-    export CMSSW_VERSION="CMSSW_11_0_0_pre3"
+    export CMSSW_VERSION="$HGC_CMSSW_VERSION"
     export CMSSW_BASE="$( hgc_cmssw_base )"
 
     if [ ! -d "$CMSSW_BASE" ]; then
