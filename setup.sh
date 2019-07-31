@@ -44,7 +44,8 @@ action() {
     [ -z "$HGC_CONDA_DIR" ] && export HGC_CONDA_DIR="/afs/cern.ch/work/j/jkiesele/public/conda_env/miniconda3"
 
     # store the location of the default gfal2 python bindings
-    local gfal2_bindings_file="$( python -c "import gfal2; print(gfal2.__file__)" )"
+    local gfal2_bindings_file="$( python -c "import gfal2; print(gfal2.__file__)" &> /dev/null )"
+    [ "$?" != "0" ] && gfal2_bindings_file=""
 
 
     #
@@ -167,10 +168,14 @@ action() {
         hgc_install_pip --no-dependencies git+https://github.com/riga/law.git
 
         # setup gfal, setup patched plugins, remove the http plugin
-        ln -s "$gfal2_bindings_file" "$HGC_SOFTWARE/lib/python2.7/site-packages"
-        export GFAL_PLUGIN_DIR="$HGC_GFAL_PLUGIN_DIR_ORIG"
-        source "$(law location)/contrib/cms/scripts/setup_gfal_plugins.sh" "$HGC_GFAL_PLUGIN_DIR"
-        unlink "$HGC_GFAL_PLUGIN_DIR/libgfal_plugin_http.so"
+        if [ ! -z "$gfal2_bindings_file" ]; then
+            ln -s "$gfal2_bindings_file" "$HGC_SOFTWARE/lib/python2.7/site-packages"
+            export GFAL_PLUGIN_DIR="$HGC_GFAL_PLUGIN_DIR_ORIG"
+            source "$(law location)/contrib/cms/scripts/setup_gfal_plugins.sh" "$HGC_GFAL_PLUGIN_DIR"
+            unlink "$HGC_GFAL_PLUGIN_DIR/libgfal_plugin_http.so"
+        else
+            echo "skip setting up gfal2 plugins"
+        fi
     }
     export -f hgc_install_software
     hgc_install_software silent
