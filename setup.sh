@@ -15,7 +15,7 @@ action() {
     else
         local this_file="${BASH_SOURCE[0]}"
     fi
-    local this_dir="$( dirame "$this_file" )"
+    local this_dir="$( dirname "$this_file" )"
 
     # source the user setup file when existing
     [ -f "$this_dir/setup_user.sh" ] && source "$this_dir/setup_user.sh" ""
