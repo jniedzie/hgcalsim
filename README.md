@@ -45,7 +45,7 @@ export HGC_SCHEDULER_PORT="..."
 
 most probably in your bashrc file. **Otherwise**, you should add `--local-scheduler` to all `law run` commands.
 
-To run a personal scheduler (e.g. on [OpenStack](https://openstack.cern.ch/project)), you can use [this docker image](https://cloud.docker.com/u/riga/repository/docker/riga/luigid-nginx).
+You can also [setup a personal scheduler on OpenStack](https://github.com/riga/hgcalsim/wiki#setting-up-a-luigi-scheduler-on-openstack).
 
 
 ### Storage on EOS
@@ -70,5 +70,5 @@ law run sim.NtupTask --n-events 2 --branch 0 --version dev
 Run the above steps for 10 tasks on HTCondor:
 
 ```shell
-law run sim.NtupTask --n-events 2 --n-tasks 10 --version dev1_converter --pilot --workflow htcondor
+law run sim.NtupTask --n-events 2 --n-tasks 10 --version dev --pilot --workflow htcondor
 ```
