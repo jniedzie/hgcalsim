@@ -8,9 +8,13 @@ __all__ = ["PlotTask"]
 
 
 import law
+import luigi
 
 from hgc.tasks.base import Task
 from hgc.tasks.simulation import NtupTask
+
+
+luigi.namespace("plot", scope=__name__)
 
 
 class PlotTask(Task):

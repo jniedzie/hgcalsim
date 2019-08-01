@@ -3,10 +3,11 @@
 action() {
     local origin="$( pwd )"
 
-
-    #
-    # global variables
-    #
+    # do nothing when the setup was already done
+    if [ "$HGC_SETUP" = "1" ]; then
+        echo "hgcalsim already setup"
+        return "0"
+    fi
 
     # determine the directory of this file
     if [ ! -z "$ZSH_VERSION" ]; then
@@ -14,7 +15,18 @@ action() {
     else
         local this_file="${BASH_SOURCE[0]}"
     fi
-    export HGC_BASE="$( cd "$( dirname "$this_file" )" && pwd )"
+    local this_dir="$( dirame "$this_file" )"
+
+    # source the user setup file when existing
+    [ -f "$this_dir/setup_user.sh" ] && source "$this_dir/setup_user.sh" ""
+
+
+    #
+    # global variables
+    #
+
+    # base directory
+    export HGC_BASE="$( cd "$this_dir" && pwd )"
 
     # check if we're on lxplus
     if [[ "$( hostname )" = lxplus*.cern.ch ]]; then
@@ -221,5 +233,8 @@ action() {
 
     # rerun the task indexing
     law index --verbose
+
+    # remember that the setup run
+    export HGC_SETUP="1"
 }
 action "$@"

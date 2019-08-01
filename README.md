@@ -58,24 +58,17 @@ By default, most of the tasks write their output files to EOS. To prevent that (
 Re-compile CMSSW with 2 cores after making some updates to the code:
 
 ```shell
-law run CompileCMSSW --n-cores 2
+law run sw.CompileCMSSW --n-cores 2
 ```
 
-Run GSD, RECO, NTUP and conversion steps:
+Run GSD, RECO, and NTUP steps:
 
 ```shell
-law run ConverterTask --n-events 2 --branch 0 --version dev
+law run sim.NtupTask --n-events 2 --branch 0 --version dev
 ```
 
 Run the above steps for 10 tasks on HTCondor:
 
 ```shell
-law run ConverterTask --n-events 2 --n-tasks 10 --version dev1_converter --pilot --workflow htcondor
-```
-
-Merge the converted files into a configurable number of files (`--n-merged-files`):
-
-```shell
-law run MergeConvertedFiles --n-events 2 --n-tasks 10 --n-merged-files 1 --version dev1_converter \
-    --ConverterTask-pilot --ConverterTask-workflow htcondor
+law run sim.NtupTask --n-events 2 --n-tasks 10 --version dev1_converter --pilot --workflow htcondor
 ```

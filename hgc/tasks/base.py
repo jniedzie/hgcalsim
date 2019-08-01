@@ -11,8 +11,8 @@ __all__ = ["Task", "HTCondorWorkflow"]
 import os
 import math
 
-import luigi
 import law
+import luigi
 
 law.contrib.load("htcondor", "tasks", "telegram", "root")
 
@@ -38,7 +38,7 @@ class Task(law.Task):
     default_eos_store = "$HGC_STORE_EOS"
 
     def store_parts(self):
-        parts = (self.__class__.__name__,)
+        parts = (self.task_family,)
         return parts
 
     def store_parts_opt(self):
@@ -48,14 +48,19 @@ class Task(law.Task):
         return parts
 
     def local_path(self, *path, **kwargs):
+        # determine the path where to store targets
         default_store = self.default_eos_store if self.eos else self.default_store
         store_path = kwargs.get("store") or default_store
-        store_path = os.path.expandvars(os.path.expanduser(store_path))
+
+        # get fragements / parts from store_parts, store_parts_opt and the passed path
+        # which are translated into directories (["a", "b", "c"] -> "a/b/c")
         parts = [str(p) for p in self.store_parts() + self.store_parts_opt() + path]
-        return os.path.join(store_path, *parts)
+
+        # build the path and return it
+        return os.path.join(os.path.expandvars(os.path.expanduser(store_path)), *parts)
 
     def local_target(self, *args, **kwargs):
-        cls = law.LocalFileTarget if args else law.LocalDirectoryTarget
+        cls = law.LocalFileTarget if kwargs.pop("dir", False) else law.LocalDirectoryTarget
         return cls(self.local_path(*args, store=kwargs.pop("store", None)), **kwargs)
 
 

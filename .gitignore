@@ -18,4 +18,4 @@ cmssw
 store
 .data
 .law
-
+setup_user.sh
