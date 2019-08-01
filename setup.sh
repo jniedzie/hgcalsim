@@ -164,11 +164,7 @@ action() {
 
         hgc_install_pip wget
         hgc_install_pip python-telegram-bot
-        hgc_install_pip git+https://github.com/riga/scinum.git
-        hgc_install_pip git+https://github.com/riga/order.git
-        hgc_install_pip git+https://github.com/riga/plotlib.git
         hgc_install_pip luigi
-        hgc_install_pip --no-dependencies git+https://github.com/riga/law.git
 
         # setup gfal, setup patched plugins, remove the http plugin
         if [ ! -z "$gfal2_bindings_file" ]; then
@@ -188,6 +184,12 @@ action() {
 
     # add _this_ repo to the python path
     hgc_add_py "$HGC_BASE"
+
+    # software from modules
+    hgc_add_py "$HGC_BASE/modules/law"
+    hgc_add_bin "$HGC_BASE/modules/law/bin"
+    hgc_add_py "$HGC_BASE/modules/scinum"
+    hgc_add_py "$HGC_BASE/modules/plotlib"
 
 
     #
