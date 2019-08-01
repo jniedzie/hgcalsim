@@ -60,7 +60,7 @@ class Task(law.Task):
         return os.path.join(os.path.expandvars(os.path.expanduser(store_path)), *parts)
 
     def local_target(self, *args, **kwargs):
-        cls = law.LocalFileTarget if kwargs.pop("dir", False) else law.LocalDirectoryTarget
+        cls = law.LocalDirectoryTarget if kwargs.pop("dir", False) else law.LocalFileTarget
         return cls(self.local_path(*args, store=kwargs.pop("store", None)), **kwargs)
 
 
