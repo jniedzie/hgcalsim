@@ -69,7 +69,8 @@ process.RandomNumberGeneratorService.mix.initialSeed = cms.untracked.uint32(opti
 if options.particleIds == "mix":
     if options.exactShoot:
         raise Exception("when exactShoot is True, particleIds must not be 'mix'")
-    particle_ids = 25 * [211] + 25 * [-211] + 26 * [22] + 12 * [13] + 12 * [-13]
+    # particle "mix" is 20% pi+, 20% pi-, 20% gamma, 10% e+, 10% e-, 10% mu+, 10% mu-
+    particle_ids = 20 * [211, -211] + 20 * [22] + 10 * [11, -11] + 10 * [13, -13]
 else:
     # try to parse a comma-separated list
     try:
