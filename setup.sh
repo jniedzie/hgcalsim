@@ -127,9 +127,10 @@ action() {
         fi
 
         # create the prodtools base templates once
-        ( cd reco_prodtools/templates/python; bash produceSkeletons_D41_NoSmear_noPU.sh )
+        cd reco_prodtools/templates/python
+        ./produceSkeletons_D41_NoSmear_noPU.sh || return "$?"
+        cd "$CMSSW_VERSION/src"
         scram b python
-
         cd "$origin"
     else
         cd "$CMSSW_BASE/src"
