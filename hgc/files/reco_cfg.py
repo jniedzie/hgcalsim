@@ -21,12 +21,14 @@ options.setDefault("maxEvents", -1)
 # register custom options
 options.register("outputFileDQM", "dqm.root", VarParsing.multiplicity.singleton,
     VarParsing.varType.string, "path to the DQM output file")
+options.register("nThreads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int, "")
 
 options.parseArguments()
 
+process.options.numberOfThreads = cms.untracked.uint32(options.nThreads)
 
 # input / output
-process.maxEvents.input = cms.untracked.int32(-1)
+process.maxEvents.input = cms.untracked.int32(options.maxEvents)
 process.source.fileNames = cms.untracked.vstring(
     *["file:{}".format(f) for f in options.inputFiles])
 process.FEVTDEBUGHLToutput.fileName = cms.untracked.string(
